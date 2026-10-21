@@ -1,6 +1,6 @@
 ---
 name: spec-batch
-description: Drive spec-based work through planned batches, one batch per session, in a feature-based Riverpod Flutter app. First run (with spec paths and/or Figma links) only plans — gap check, spec-vs-design check, open questions, batches — into its own plan file under specs/_progress/; with Figma links and no spec it drafts the spec from the design first. Each later run (no arguments) implements the next batch end to end — explore, architecture options, implement (from its Figma frames, or matching an existing screen when there's no design), review, tests, verify, commit on approval — then hands off to a fresh session.
+description: Drive spec-based work through planned batches, one batch per session, in a feature-based Riverpod Flutter app. First run (with spec paths and/or Figma links) only plans — gap check, spec-vs-design check, open questions, batches — into its own plan file under specs/_progress/; with Figma links and no spec it drafts the spec from the design first. Each later run (no arguments) implements the next batch end to end — explore, architecture options (two architect agents, only when there's a real structural decision), implement (from its Figma frames, or matching an existing screen when there's no design), review, tests, verify, commit on approval — then hands off to a fresh session.
 argument-hint: "[spec files/folder] [Figma links] to plan · [plan name] or nothing to continue"
 disable-model-invocation: true
 ---
@@ -82,7 +82,15 @@ Launch 2–3 exploration agents in parallel (`feature-dev:code-explorer` if avai
 If the batch needs answers the recorded decisions don't cover, ask them now — grouped, recommendation first. Record the answers in the plan file.
 
 ### 3. Architecture
-If the batch involves anything under CLAUDE.md "Architecture decisions — ask before applying" (provider count/type/lifetime, file layout, new shared abstraction, state shape): present the options — recommendation first, one-line trade-off each — and **wait**. Otherwise proceed without asking.
+**Only when the batch involves a real architectural decision** — anything under CLAUDE.md "Architecture decisions — ask before applying": provider count/type/lifetime, file/folder layout, a new shared abstraction in `core/`, state shape. Typical cases: the first state batch of a feature, a new `core/` abstraction, more than one sensible way to structure the files. A batch that follows an existing pattern skips this step entirely — no agents, no question.
+
+When it applies:
+1. **Launch two architects in parallel** (one message): `feature-dev:code-architect` if that agent type is available, otherwise `general-purpose` with the same brief. Give each the batch goal and requirements, the recorded decisions, the key files from step 1, and the instruction to follow CLAUDE.md. Ask for a complete blueprint: files to create/change, providers (type, lifetime), state shape, data flow, how it fits the existing patterns, and its trade-offs.
+   - **A — minimal change:** extend what already exists; fewest new files and abstractions.
+   - **B — clean:** the design that fits the architecture best long-term, even if it touches more code.
+2. **Compare** the two blueprints: where they agree, where they differ, and what each costs. If a middle ground beats both, add it as option **C**.
+3. **Present** the options — recommendation first, one-line trade-off each, and roughly how many files each touches — and **wait** for the user's choice.
+4. **Record** the choice as a decision in the plan file, then build exactly that design in step 4.
 
 ### 4. Implement
 Follow CLAUDE.md and the plugin's skills (`riverpod`, `wire-endpoint`, `pagination`, `i18n`, `photo-upload-field`, `auth-flow-gotchas`). For UI, take the batch's **Design** line:
