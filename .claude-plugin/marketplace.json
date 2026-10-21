@@ -1,0 +1,14 @@
+{
+  "name": "flutter-kit",
+  "description": "Claude Code plugins for feature-based Riverpod Flutter apps",
+  "owner": {
+    "name": "ahmedsaleh210"
+  },
+  "plugins": [
+    {
+      "name": "flutter-kit",
+      "source": "./plugins/flutter-kit",
+      "description": "Skills, reviewer/test agents and a dart-format hook for feature-based Riverpod Flutter apps"
+    }
+  ]
+}
