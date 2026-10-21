@@ -19,7 +19,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `photo-upload-field` | Mixed local/remote photo pickers with edit mode |
 | `auth-flow-gotchas` | The silent-failure contracts of auth/onboarding flows |
 | `review-batch` | Runs the reviewer agents on a batch; `full` mode adds `/simplify` at the end of a feature |
-| `spec-batch` | Drives spec work in batches across sessions, with a `specs/_progress.md` plan (user-invoked only) |
+| `spec-batch` | Drives spec work in batches across sessions, with a `specs/_progress.md` plan. Takes specs, Figma links, or both; drafts a spec from the design when there's none; screens without a design are built to match an existing screen (user-invoked only) |
 
 **Agents** (`plugins/flutter-kit/agents/`) — `code-smells-reviewer`, `architecture-reviewer`, `test-writer`, `spec-gap-checker`.
 
@@ -51,7 +51,7 @@ Don't keep copies of these skills in a repo's `.claude/skills/` — same-named p
 
 ## Daily use
 - Skills trigger on their own when the task matches (or call them: `/riverpod`, `/flutter-kit:riverpod`).
-- Spec work: `/spec-batch specs/…` plans the batches (no code); then `/spec-batch` in a fresh session per batch.
+- Spec work: `/spec-batch specs/… [Figma links]` plans the batches (no code); then `/spec-batch` in a fresh session per batch. Design only? `/spec-batch <Figma links>` drafts the spec first for you to review.
 - After each batch: `/review-batch`. At the end of a feature: `/review-batch full`.
 - Ask for an agent by name: "have test-writer cover the bookings feature", "run spec-gap-checker on specs/x.md".
 
