@@ -141,14 +141,22 @@ Stop. Tell the user what the next batch is and: open a new session and run `/spe
 
 ## Plan worktrees — running a second plan in parallel
 
+This section only applies when the user picks the worktree option in Continue step 0. **A single plan never uses it** — its batches run in the repo folder, on the current branch, with no worktree, sync or merge.
+
 One batch per folder at a time. To work on two plans at once, the second plan gets its own git worktree — a separate folder of the same repo, **next to it** (`../<repo>--<plan>`), on branch `plan/<plan>` — for its whole life. Next to the repo, not inside it: a worktree inside would show up as untracked in the base folder's `git status` and be picked up by its analyzer and search. Its batches still run one after another, inside that worktree. Batches of the same plan never run in parallel.
 
 ### Create (only after the user picks it)
 1. If this plan's file isn't committed yet, commit it first (ask; by path), so the worktree has it.
 2. `git worktree add ../<repo>--<plan> -b plan/<plan> HEAD` (`<repo>` = this folder's name) — from the local HEAD, so local commits come along. Note the base branch (the branch checked out here) and the absolute path of both folders.
-3. Move the session in: EnterWorktree with `path:` the new folder's absolute path. If that tool isn't available, run `code <new folder>` (if the `code` command exists), tell the user to run `/spec-batch <plan>` in the new window, and stop.
-4. Inside the worktree: `flutter pub get`, then `dart run build_runner build --delete-conflicting-outputs`.
-5. Add to the plan file header: `Worktree: ../<repo>--<plan> · branch plan/<plan> · base <base>`, and continue the batch right here.
+3. **Copy the local files git doesn't carry.** A worktree starts from the last commit — uncommitted and git-ignored files stay behind. Copy these from the base folder into the same paths in the worktree (only if they exist and aren't tracked), and list what you copied:
+   - `.env` files at the root (`.env`, `.env.*`) — usually listed as a pubspec asset, so the app won't build without them;
+   - `.claude/settings.local.json` — the user's approved permissions;
+   - `android/key.properties` and the keystore its `storeFile` points to (path relative to `android/app/`);
+   - any other git-ignored file listed under `flutter: assets:` in `pubspec.yaml`.
+   Find candidates with `git ls-files --others --ignored --exclude-standard`. Skip build output and what Flutter regenerates (`build/`, `.dart_tool/`, `GeneratedPluginRegistrant.*`, `Generated.xcconfig`, `local.properties`, Pods). These files stay on this machine and are never committed.
+4. Move the session in: EnterWorktree with `path:` the new folder's absolute path. If that tool isn't available, run `code <new folder>` (if the `code` command exists), tell the user to run `/spec-batch <plan>` in the new window, and stop.
+5. Inside the worktree: `flutter pub get`, then `dart run build_runner build --delete-conflicting-outputs`.
+6. Add to the plan file header: `Worktree: ../<repo>--<plan> · branch plan/<plan> · base <base>`, and continue the batch right here.
 
 ### Sync — after every batch commit in the worktree
 Bring the base branch in, so conflicts are solved here and never in the base folder:

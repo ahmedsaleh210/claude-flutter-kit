@@ -90,8 +90,8 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 - **No Figma, no designed screen:** if a batch has Figma frames but the Figma tools don't answer, the UI work stops until they do (or you explicitly accept matching an existing screen for now).
 
 ### Two plans in parallel
-One running batch per folder. To work on a second plan while another plan's batch is running, choose the worktree option when `/spec-batch` offers it:
-- It creates a git worktree **next to** the repo (`../<repo>--<plan>`, branch `plan/<plan>`) from your local HEAD, moves the session into it (you approve the move), runs `flutter pub get` + `build_runner`, and continues there. All of that plan's batches run in that folder, one after another.
+A single plan never uses any of this — its batches run in the repo folder on the current branch. One running batch per folder. To work on a second plan while another plan's batch is running, choose the worktree option when `/spec-batch` offers it:
+- It creates a git worktree **next to** the repo (`../<repo>--<plan>`, branch `plan/<plan>`) from your local HEAD, copies the git-ignored local files the app and tools need (`.env`, `.claude/settings.local.json`, signing config, ignored pubspec assets), moves the session into it (you approve the move), runs `flutter pub get` + `build_runner`, and continues there. All of that plan's batches run in that folder, one after another.
 - After every batch commit it **syncs** the base branch into the plan branch and resolves conflicts there — generated files are regenerated, never hand-merged; `lang.json` and other additive lists keep both sides; real code conflicts are shown to you — then runs analyze and tests.
 - `/spec-batch <plan> merge` (or the offer after the last batch) merges the plan into the base branch — only when the base folder is idle — then removes the worktree after asking. Nothing is pushed.
 - Batches of the *same* plan never run in parallel; they depend on each other.
