@@ -60,7 +60,7 @@ Present the list (title, goal, requirements covered, design) and let the user re
 Create `specs/_progress/<plan>.md` with `Status: active`, using the format below. Record the spec snapshot: `git log -1 --format=%h -- specs api-specs`.
 
 ### 7. Commit?
-Ask before committing the plan file (and a drafted spec). Never push.
+Ask before committing. Stage only the plan file (and a drafted spec) **by path** — never `git add -A`, `git add .` or `commit -a`. Never push.
 
 ### 8. Hand off
 Stop. Tell the user the first batch's title and: open a new session and run `/spec-batch` (or `/spec-batch <plan>` when more than one plan is active).
@@ -69,11 +69,20 @@ Stop. Tell the user the first batch's title and: open a new session and run `/sp
 
 ## Continue mode — exactly one batch this session
 
-### 0. Load and check for changes
-- Read the plan file (see mode selection). Take the batch marked `in-progress`, else the first `pending` one whose design isn't `deferred`. Mark it `in-progress`.
-- **Spec drift:** `git diff --stat <snapshot>..HEAD -- specs api-specs` (plus uncommitted spec changes). If anything changed, run `flutter-kit:spec-gap-checker` on the changed files only, show what it means for the remaining batches, and update the plan and snapshot once the user agrees.
-- **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
-- Say in one line which batch you're starting, what it covers, and its design source.
+### 0. Load, claim, check
+1. **Snapshot the working tree.** Run `git status --porcelain` and keep that list as the *pre-existing changes*. If it isn't empty, tell the user which files are already modified — another session's work or something unfinished. They are not this batch's, and this batch will not commit them (step 9).
+2. **Pick the batch** from the plan file (see mode selection):
+   - **A batch already `in-progress`** may still be running in another session. Show its `Session:` line (started when, in which folder) and ask:
+     - (a) that session is still working on it → **stop here**; don't touch the batch. (Running two batches at once isn't supported yet — finish or close the other session first.)
+     - (b) that session ended or was interrupted → take the batch over here and **resume** it (item 3).
+   - **Otherwise** the first `pending` batch whose design isn't `deferred`.
+   - **Claim it right away**, before exploring: set its heading to `— in-progress` and add `Session: <YYYYMMDD-HHMMSS> · started <YYYY-MM-DD HH:MM> · <repo folder> · <branch>` and `Stage: exploring`. Save the plan file now, not at the end, so any other session sees the claim.
+3. **Resuming a taken-over batch.** Before any new work, find out what is already done: the batch's `Stage:` and `Notes:`, commits since the plan snapshot that belong to it (`git log`), and the uncommitted files that belong to it (`git diff`, untracked files — told apart from the pre-existing changes). Tell the user what's done and what's left, confirm, and continue from the recorded stage. Never rewrite code that already exists — review it and finish it.
+4. **Spec drift:** `git diff --stat <snapshot>..HEAD -- specs api-specs` (plus uncommitted spec changes). If anything changed, run `flutter-kit:spec-gap-checker` on the changed files only, show what it means for the remaining batches, and update the plan and snapshot once the user agrees.
+5. **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
+6. Say in one line which batch you're starting (or resuming), what it covers, and its design source.
+
+**Keep `Stage:` current** as you go — `exploring` → `implementing` → `reviewing` → `testing` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
 
 ### 1. Explore
 Launch 2–3 exploration agents in parallel (`feature-dev:code-explorer` if available, else `Explore`), each with a distinct target: the code this batch changes, the closest existing feature that does something similar, and the UI/core building blocks to reuse. Then read the key files they point to yourself.
@@ -94,7 +103,8 @@ When it applies:
 
 ### 4. Implement
 Follow CLAUDE.md and the plugin's skills (`riverpod`, `wire-endpoint`, `pagination`, `i18n`, `photo-upload-field`, `auth-flow-gotchas`). For UI, take the batch's **Design** line:
-- **Figma links →** build each screen with `figma-screen` from those frames.
+- **Figma links →** first make sure the Figma tools answer (fetch the frame's metadata). **If they don't, stop the UI work** and tell the user to open the Figma desktop app with the Dev Mode MCP server enabled (or connect the Figma plugin), then retry. Never build a designed screen from the spec text or from guesswork. Only if the user explicitly says to go ahead without it, build to match an existing screen and add `Design check: pending — Figma unavailable` to the batch notes, so the screen is checked against the design later. Non-UI parts of the batch can continue meanwhile.
+  Once the tools answer, build each screen with `figma-screen` from those frames.
 - **`none — match <screen>` →** read that screen first and build to it: same core widgets, spacing, radii, shadows and text sizes (type ladder in CLAUDE.md). Don't invent a new visual style; anything the reference doesn't cover, take from the nearest sibling screen.
 - The spec decides behaviour; the design decides looks. Where they conflict and no decision is recorded, ask.
 
@@ -111,10 +121,12 @@ Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` 
 If the app is running, check the changed screens with `/dtd-verify` against their design — the Figma frame, or the reference screen for `none — match …` — and say what you actually saw. If it isn't running, say the UI wasn't checked at runtime.
 
 ### 8. Update the plan file
-Mark the batch `done`, add notes (deviations from the spec or design, things deferred), add new follow-ups, and record any decisions taken this session. After the last batch, set the plan's `Status:` to `done`.
+Mark the batch `done` (set `Stage: done`; drop the `Session:` line), add notes (deviations from the spec or design, things deferred), add new follow-ups, and record any decisions taken this session. After the last batch, set the plan's `Status:` to `done`.
 
-### 9. Commit — ask first
-Show a short summary: what changed, test results, review items skipped. Ask before committing. On yes, commit the code + the plan file with a conventional message. Never push unless asked.
+### 9. Commit — ask first, this batch's files only
+- Build the file list: every file this batch created or changed, the plan file, and the generated files that come with them (`*.g.dart` of its providers, `locale_keys.g.dart` / `en.json` / `ar.json` when it changed `lang.json`, `assets.gen.dart` when it added assets).
+- Anything from the **pre-existing changes** (step 0) stays out. If this batch also edited one of those files, ask before including it — the commit would carry someone else's change too.
+- Show a short summary — what changed, the exact file list, test results, review items skipped — and ask. On yes, stage **by path** and commit with a conventional message. Never `git add -A`, `git add .` or `git commit -a`. Never push unless asked.
 
 ### 10. Hand off
 Stop. Tell the user what the next batch is and: open a new session and run `/spec-batch` (or `/spec-batch <plan>` when more than one plan is active). If that was the last batch, give the final summary, the open follow-ups, and any batches still deferred for design.
@@ -125,6 +137,7 @@ Stop. Tell the user what the next batch is and: open a new session and run `/spe
 - **One batch per session.** Don't start the next batch here even if there's context left — unless the user explicitly asks.
 - Don't skip review or tests to save time. Don't run `/feature-dev` inside this flow.
 - Never loosen or delete a failing test to get green.
+- Never stage with `git add -A`, `git add .` or `git commit -a` — only this batch's files, by path.
 - A screen with no design is built to match an existing screen — never styled from scratch.
 
 ## Plan file format — `specs/_progress/<plan>.md`
@@ -150,12 +163,16 @@ Spec snapshot: <short hash>   ·   Planned: YYYY-MM-DD
 Goal: <one line>
 Covers: R3, R4, R7
 Design: — (no UI)
+Stage: done
 Notes: <after done — deviations, deferred items>
 
 ### 2. <title> — in-progress
 Goal: …
 Covers: …
 Design: <Figma links> | none — match <screen path> | deferred — waiting for design
+Session: 20261022-171500 · started 2026-10-22 17:15 · romway-provider · main
+Stage: implementing
+Notes: repository + notifier done; screen next
 
 ### 3. <title> — pending
 …

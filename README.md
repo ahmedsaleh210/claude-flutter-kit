@@ -82,6 +82,12 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 - Labels follow the plan's language: Arabic (`الدفعة`, `تخطيط`) when the plan file contains Arabic, English otherwise. Force one with the `FLUTTER_KIT_LANG` environment variable (`ar` or `en`), e.g. in `~/.claude/settings.json` → `"env": { "FLUTTER_KIT_LANG": "ar" }`.
 - The plugin must be installed (not just loaded for one session) for its hooks to name sessions.
 
+### Safety rails in batch sessions
+- **Commits carry only the batch's files**, staged by path — files that were already modified when the batch started (another session's work) are left out. Never `git add -A`.
+- **A batch is claimed when it starts** (`Session:` and `Stage:` lines in the plan file), so a second session won't silently start the same batch; it asks whether the other session is still running.
+- **An interrupted batch resumes** from its recorded stage after checking what's already committed or on disk — nothing is rewritten.
+- **No Figma, no designed screen:** if a batch has Figma frames but the Figma tools don't answer, the UI work stops until they do (or you explicitly accept matching an existing screen for now).
+
 ## Developing the plugin
 - Try local changes before pushing: `claude --plugin-dir ./plugins/flutter-kit` (that session uses the local copy).
 - Validate: `claude plugin validate .` and `claude plugin validate ./plugins/flutter-kit`.
