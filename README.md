@@ -23,7 +23,9 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 
 **Agents** (`plugins/flutter-kit/agents/`) — `code-smells-reviewer`, `architecture-reviewer`, `test-writer`, `spec-gap-checker`.
 
-**Hook** — runs `dart format` on every `.dart` file Claude edits (generated files skipped).
+**Hooks** (`plugins/flutter-kit/hooks/`)
+- **dart format** — formats every `.dart` file Claude edits (generated files skipped).
+- **Session names for `/spec-batch`** — names the session from the plan, so every batch session is easy to find (see below).
 
 ## Assumptions — read before using it elsewhere
 The skills are written for apps that share a specific structure: `lib/src/features/{feature}/{data,presentation}` with barrel files, Riverpod with `@riverpod` codegen, a `Go` navigation helper, `StatusBuilder`, a `TextBuilder` text extension, `LocaleKeys` generated from a single `lang.json`, a paginated-provider factory, and a `pumpApp` test harness. Business rules are deliberately **not** in the skills: they point to a `## Project specifics` section in each app's `CLAUDE.md`. If your app differs, fork and adapt the skills.
@@ -54,6 +56,31 @@ Don't keep copies of these skills in a repo's `.claude/skills/` — same-named p
 - Spec work: `/spec-batch specs/… [Figma links]` plans the batches (no code); then `/spec-batch` (or `/spec-batch <plan>` when several plans are active) in a fresh session per batch. Design only? `/spec-batch <Figma links>` drafts the spec first for you to review.
 - After each batch: `/review-batch`. At the end of a feature: `/review-batch full`.
 - Ask for an agent by name: "have test-writer cover the bookings feature", "run spec-gap-checker on specs/x.md".
+
+## Plans, batches and session names
+- A **plan** is one `/spec-batch` planning run — any number of specs (and Figma links) planned together. It has one file, `specs/_progress/<plan>.md`, holding the specs, designs, decisions and the list of batches. `Status: active` until the last batch is done, then `done`.
+- A **batch** is one slice of a plan, finished in one session: its own goal, requirements, design and commit.
+
+```
+plan: wallet   (specs/_progress/wallet.md)
+├── Batch 1: models + repository      ← session 2
+├── Batch 2: wallet state             ← session 3
+└── Batch 3: withdrawal screen        ← session 4
+```
+
+Each session is named automatically when its first prompt is `/spec-batch` — no need to type a description:
+
+| You type | Session name |
+|---|---|
+| `/spec-batch specs/wallet-flutter.md specs/_enums.md` | `wallet, enums · planning` |
+| `/spec-batch` (one active plan) | `wallet · Batch 3: Withdrawal screen` |
+| `/spec-batch notifications` | `notifications · Batch 1: Notification enums` |
+
+- The batch is the one in progress, else the first pending one whose design isn't deferred — the same one `/spec-batch` will work on.
+- With several active plans, `/spec-batch` alone leaves the name untouched (it can't know which plan you'll pick); use `/spec-batch <plan>`.
+- A session you already named is never renamed.
+- Labels follow the plan's language: Arabic (`الدفعة`, `تخطيط`) when the plan file contains Arabic, English otherwise. Force one with the `FLUTTER_KIT_LANG` environment variable (`ar` or `en`), e.g. in `~/.claude/settings.json` → `"env": { "FLUTTER_KIT_LANG": "ar" }`.
+- The plugin must be installed (not just loaded for one session) for its hooks to name sessions.
 
 ## Developing the plugin
 - Try local changes before pushing: `claude --plugin-dir ./plugins/flutter-kit` (that session uses the local copy).
