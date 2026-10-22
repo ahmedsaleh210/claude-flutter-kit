@@ -75,6 +75,7 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 | `/spec-batch specs/wallet-flutter.md specs/_enums.md` | `wallet, enums · planning` |
 | `/spec-batch` (one active plan) | `wallet · Batch 3: Withdrawal screen` |
 | `/spec-batch notifications` | `notifications · Batch 1: Notification enums` |
+| `/spec-batch wallet merge` | `wallet · merge` |
 
 - The batch is the one in progress, else the first pending one whose design isn't deferred — the same one `/spec-batch` will work on.
 - With several active plans, `/spec-batch` alone leaves the name untouched (it can't know which plan you'll pick); use `/spec-batch <plan>`.
@@ -84,9 +85,16 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 
 ### Safety rails in batch sessions
 - **Commits carry only the batch's files**, staged by path — files that were already modified when the batch started (another session's work) are left out. Never `git add -A`.
-- **A batch is claimed when it starts** (`Session:` and `Stage:` lines in the plan file), so a second session won't silently start the same batch; it asks whether the other session is still running.
+- **A batch is claimed when it starts** (`Session:` and `Stage:` lines in the plan file). Before starting, `/spec-batch` reads **every** plan in the folder: if any batch is running there — same plan or another — it stops and asks whether that session is still running.
 - **An interrupted batch resumes** from its recorded stage after checking what's already committed or on disk — nothing is rewritten.
 - **No Figma, no designed screen:** if a batch has Figma frames but the Figma tools don't answer, the UI work stops until they do (or you explicitly accept matching an existing screen for now).
+
+### Two plans in parallel
+One running batch per folder. To work on a second plan while another plan's batch is running, choose the worktree option when `/spec-batch` offers it:
+- It creates a git worktree **next to** the repo (`../<repo>--<plan>`, branch `plan/<plan>`) from your local HEAD, moves the session into it (you approve the move), runs `flutter pub get` + `build_runner`, and continues there. All of that plan's batches run in that folder, one after another.
+- After every batch commit it **syncs** the base branch into the plan branch and resolves conflicts there — generated files are regenerated, never hand-merged; `lang.json` and other additive lists keep both sides; real code conflicts are shown to you — then runs analyze and tests.
+- `/spec-batch <plan> merge` (or the offer after the last batch) merges the plan into the base branch — only when the base folder is idle — then removes the worktree after asking. Nothing is pushed.
+- Batches of the *same* plan never run in parallel; they depend on each other.
 
 ## Developing the plugin
 - Try local changes before pushing: `claude --plugin-dir ./plugins/flutter-kit` (that session uses the local copy).

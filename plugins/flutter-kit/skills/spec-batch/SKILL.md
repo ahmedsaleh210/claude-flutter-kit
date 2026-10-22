@@ -11,7 +11,7 @@ Every plan has its own **plan file**, `specs/_progress/<plan>.md` — one per `/
 
 Pick the mode from `$ARGUMENTS`:
 - **Spec paths and/or Figma links → Plan mode** — a new plan.
-- **A single word that names an existing plan** (no `/`, no `.md`, not a URL) **→ Continue mode** for that plan.
+- **First word names an existing plan** (no `/`, no `.md`, not a URL) **→ Continue mode** for that plan. Words after it are just a label for the session name and are ignored — except `merge` (`/spec-batch <plan> merge`), which goes straight to "Plan worktrees → Final merge".
 - **No arguments → Continue mode.** Look at the plan files whose `Status:` is `active`:
   - none → say so (list finished plans, if any) and ask what to plan from;
   - one → continue it;
@@ -27,6 +27,7 @@ Talk to the user in their language. Write plan files (and any drafted spec) in E
 ## Plan mode — this session plans only, no code
 
 ### 1. Inputs and plan name
+- Planning writes no code, so it may run while a batch is in progress in this folder — just mention that batch. It commits only its own plan file.
 - **Plan name** — propose a short kebab-case name for this set of specs (e.g. `notifications-marketing`) and confirm it. If `specs/_progress/<name>.md` already exists and is still `active`, ask: add these specs to it, replace it, or pick another name.
 - **Specs** — the given `specs/*.md`, plus the matching `api-specs/` files.
 - **Figma links** — optional. For each one, pull the screenshot and metadata with the Figma tools (see `figma-screen` Step 1) and name the screen it shows. If the Figma tools aren't reachable, record the links as-is and say the design couldn't be read yet.
@@ -70,17 +71,20 @@ Stop. Tell the user the first batch's title and: open a new session and run `/sp
 ## Continue mode — exactly one batch this session
 
 ### 0. Load, claim, check
-1. **Snapshot the working tree.** Run `git status --porcelain` and keep that list as the *pre-existing changes*. If it isn't empty, tell the user which files are already modified — another session's work or something unfinished. They are not this batch's, and this batch will not commit them (step 9).
-2. **Pick the batch** from the plan file (see mode selection):
-   - **A batch already `in-progress`** may still be running in another session. Show its `Session:` line (started when, in which folder) and ask:
-     - (a) that session is still working on it → **stop here**; don't touch the batch. (Running two batches at once isn't supported yet — finish or close the other session first.)
-     - (b) that session ended or was interrupted → take the batch over here and **resume** it (item 3).
+1. **Where does this plan live?** Run `git worktree list --porcelain`. If a worktree on branch `plan/<plan>` exists and this session isn't in it, this plan runs there: move the session into it (EnterWorktree with that absolute `path`, if the tool is available) and continue there; otherwise open it with `code <path>` (if the `code` command exists) and tell the user to run `/spec-batch <plan>` in that window, then stop.
+2. **Snapshot the working tree.** Run `git status --porcelain` and keep that list as the *pre-existing changes*. If it isn't empty, tell the user which files are already modified — another session's work or something unfinished. They are not this batch's, and this batch will not commit them (step 9).
+3. **Is a batch already running in this folder?** Read **every** plan file in this folder's `specs/_progress/` — not just this plan's. A batch marked `in-progress` there (any plan) means another session is, or was, working in this folder. Show it (plan, batch, started when, stage) and offer:
+   - (a) that session is still working → **stop here**; one batch per folder at a time.
+   - (b) that session ended or was interrupted → take that batch over and **resume** it (item 5). If it belongs to another plan, that means running `/spec-batch <that plan>` — do it here if the user says so.
+   - (c) run **this plan in its own worktree**, in parallel — only when the running batch belongs to a *different* plan → follow "Plan worktrees → Create", then come back to item 4 inside the worktree.
+4. **Pick the batch** from this plan:
+   - **Already `in-progress`** (and not handled by item 3 because it's this plan's own): show its `Session:` line and ask whether that session is still working (stop) or ended/interrupted (take it over and resume — item 5).
    - **Otherwise** the first `pending` batch whose design isn't `deferred`.
-   - **Claim it right away**, before exploring: set its heading to `— in-progress` and add `Session: <YYYYMMDD-HHMMSS> · started <YYYY-MM-DD HH:MM> · <repo folder> · <branch>` and `Stage: exploring`. Save the plan file now, not at the end, so any other session sees the claim.
-3. **Resuming a taken-over batch.** Before any new work, find out what is already done: the batch's `Stage:` and `Notes:`, commits since the plan snapshot that belong to it (`git log`), and the uncommitted files that belong to it (`git diff`, untracked files — told apart from the pre-existing changes). Tell the user what's done and what's left, confirm, and continue from the recorded stage. Never rewrite code that already exists — review it and finish it.
-4. **Spec drift:** `git diff --stat <snapshot>..HEAD -- specs api-specs` (plus uncommitted spec changes). If anything changed, run `flutter-kit:spec-gap-checker` on the changed files only, show what it means for the remaining batches, and update the plan and snapshot once the user agrees.
-5. **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
-6. Say in one line which batch you're starting (or resuming), what it covers, and its design source.
+   - **Claim it right away**, before exploring: set its heading to `— in-progress` and add `Session: <YYYYMMDD-HHMMSS> · started <YYYY-MM-DD HH:MM> · <folder> · <branch>` and `Stage: exploring`. Save the plan file now, not at the end, so any other session in this folder sees the claim.
+5. **Resuming a taken-over batch.** Before any new work, find out what is already done: the batch's `Stage:` and `Notes:`, commits since the plan snapshot that belong to it (`git log`), and the uncommitted files that belong to it (`git diff`, untracked files — told apart from the pre-existing changes). Tell the user what's done and what's left, confirm, and continue from the recorded stage. Never rewrite code that already exists — review it and finish it.
+6. **Spec drift:** `git diff --stat <snapshot>..HEAD -- specs api-specs` (plus uncommitted spec changes). If anything changed, run `flutter-kit:spec-gap-checker` on the changed files only, show what it means for the remaining batches, and update the plan and snapshot once the user agrees.
+7. **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
+8. Say in one line which batch you're starting (or resuming), what it covers, and its design source.
 
 **Keep `Stage:` current** as you go — `exploring` → `implementing` → `reviewing` → `testing` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
 
@@ -128,13 +132,48 @@ Mark the batch `done` (set `Stage: done`; drop the `Session:` line), add notes (
 - Anything from the **pre-existing changes** (step 0) stays out. If this batch also edited one of those files, ask before including it — the commit would carry someone else's change too.
 - Show a short summary — what changed, the exact file list, test results, review items skipped — and ask. On yes, stage **by path** and commit with a conventional message. Never `git add -A`, `git add .` or `git commit -a`. Never push unless asked.
 
+**In a plan worktree** (branch `plan/<plan>`): after the commit, follow "Plan worktrees → Sync" so the plan keeps up with the base branch.
+
 ### 10. Hand off
-Stop. Tell the user what the next batch is and: open a new session and run `/spec-batch` (or `/spec-batch <plan>` when more than one plan is active). If that was the last batch, give the final summary, the open follow-ups, and any batches still deferred for design.
+Stop. Tell the user what the next batch is and: open a new session and run `/spec-batch` (or `/spec-batch <plan>` when more than one plan is active). If that was the last batch, give the final summary, the open follow-ups, and any batches still deferred for design — and, in a plan worktree, offer "Plan worktrees → Final merge".
+
+---
+
+## Plan worktrees — running a second plan in parallel
+
+One batch per folder at a time. To work on two plans at once, the second plan gets its own git worktree — a separate folder of the same repo, **next to it** (`../<repo>--<plan>`), on branch `plan/<plan>` — for its whole life. Next to the repo, not inside it: a worktree inside would show up as untracked in the base folder's `git status` and be picked up by its analyzer and search. Its batches still run one after another, inside that worktree. Batches of the same plan never run in parallel.
+
+### Create (only after the user picks it)
+1. If this plan's file isn't committed yet, commit it first (ask; by path), so the worktree has it.
+2. `git worktree add ../<repo>--<plan> -b plan/<plan> HEAD` (`<repo>` = this folder's name) — from the local HEAD, so local commits come along. Note the base branch (the branch checked out here) and the absolute path of both folders.
+3. Move the session in: EnterWorktree with `path:` the new folder's absolute path. If that tool isn't available, run `code <new folder>` (if the `code` command exists), tell the user to run `/spec-batch <plan>` in the new window, and stop.
+4. Inside the worktree: `flutter pub get`, then `dart run build_runner build --delete-conflicting-outputs`.
+5. Add to the plan file header: `Worktree: ../<repo>--<plan> · branch plan/<plan> · base <base>`, and continue the batch right here.
+
+### Sync — after every batch commit in the worktree
+Bring the base branch in, so conflicts are solved here and never in the base folder:
+1. `git merge <base>` (inside the worktree).
+2. Resolve conflicts by kind:
+   - **Generated files** (`en.json`, `ar.json`, `locale_keys.g.dart`, `*.g.dart`, `assets.gen.dart`, `pubspec.lock`): never hand-merge — take either side, then regenerate.
+   - **`lang.json`**: keep both sides' keys; make sure the JSON is valid and no key is duplicated.
+   - **Additive lists** (`ApiConstants`, barrels, `pubspec.yaml` dependencies, plan files' Decisions/Follow-ups): keep both sides.
+   - **Real code conflicts** (same widget, notifier or model changed on both sides): show both versions and ask.
+3. Regenerate: `flutter pub get`, `dart run generate/strings/main.dart` (stop it after it prints success if it starts a watcher), `dart run build_runner build --delete-conflicting-outputs`.
+4. `flutter analyze` and `flutter test` — a merge can compile-break without any textual conflict (a renamed method used elsewhere). Fix before committing.
+5. Ask, then commit the merge.
+
+### Final merge — after the last batch, or `/spec-batch <plan> merge`
+1. Check the base folder is idle: no batch `in-progress` in its plan files, and `git -C <base folder> status --porcelain` is empty. If not, say what's blocking and stop — never merge into a folder where a session is working.
+2. Sync once more (above), and set the plan's `Status: done` in the worktree.
+3. Ask, then `git -C <base folder> merge --no-ff plan/<plan>`. It should be clean after the sync; if it isn't, `git -C <base folder> merge --abort` and report.
+4. Run `flutter analyze` and `flutter test` in the base folder.
+5. Cleanup, after asking: return the session to the base folder (ExitWorktree with `action: keep`), then `git worktree remove ../<repo>--<plan>` and `git branch -d plan/<plan>`.
+Never push.
 
 ---
 
 ## Rules
-- **One batch per session.** Don't start the next batch here even if there's context left — unless the user explicitly asks.
+- **One batch per session, one running batch per folder.** Don't start the next batch here even if there's context left — unless the user explicitly asks.
 - Don't skip review or tests to save time. Don't run `/feature-dev` inside this flow.
 - Never loosen or delete a failing test to get green.
 - Never stage with `git add -A`, `git add .` or `git commit -a` — only this batch's files, by path.
@@ -145,6 +184,7 @@ Stop. Tell the user what the next batch is and: open a new session and run `/spe
 # Spec plan — <plan>
 
 Status: active | done
+Worktree: ../<repo>--<plan> · branch plan/<plan> · base main   (only for a plan running in a worktree)
 Specs: specs/a.md, specs/b.md, api-specs/x.json
 Spec snapshot: <short hash>   ·   Planned: YYYY-MM-DD
 

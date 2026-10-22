@@ -2,7 +2,8 @@
 """UserPromptSubmit hook: names the session when a prompt starts with /spec-batch.
 
 - `/spec-batch <spec paths or Figma links>` -> "<spec names> · planning"
-- `/spec-batch` or `/spec-batch <plan>`     -> "<plan> · Batch N: <title>", read from
+- `/spec-batch <plan> merge`                -> "<plan> · merge"
+- `/spec-batch` or `/spec-batch <plan> [label]` -> "<plan> · Batch N: <title>", read from
   specs/_progress/<plan>.md (the in-progress batch, else the first pending one whose
   design isn't deferred).
 
@@ -25,8 +26,8 @@ ARABIC = re.compile(r"[؀-ۿ]")
 MAX_LEN = 80
 
 LABELS = {
-    "en": {"batch": "Batch", "planning": "planning"},
-    "ar": {"batch": "الدفعة", "planning": "تخطيط"},
+    "en": {"batch": "Batch", "planning": "planning", "merge": "merge"},
+    "ar": {"batch": "الدفعة", "planning": "تخطيط", "merge": "دمج"},
 }
 
 
@@ -92,9 +93,12 @@ def title_for(prompt: str, cwd: str):
     args = (match.group(1) or "").split()
     plans = plan_files(cwd)
 
-    is_plan_name = len(args) == 1 and "/" not in args[0] and not args[0].endswith(".md") \
-        and not args[0].startswith("http")
+    # First word naming an existing plan -> continue it; the rest is a label (or "merge").
+    is_plan_name = bool(args) and args[0] in plans
     if args and not is_plan_name:
+        if len(args) == 1 and "/" not in args[0] and not args[0].endswith(".md") \
+                and not args[0].startswith("http"):
+            return None  # a plan name that doesn't exist here
         # Planning run: name it after the specs (or Figma) it starts from.
         names = []
         for token in args:
@@ -106,10 +110,9 @@ def title_for(prompt: str, cwd: str):
         return f"{shown} · {LABELS[language(sample)]['planning']}"
 
     if is_plan_name:
-        path = plans.get(args[0])
-        if not path:
-            return None
-        plan, text = args[0], read(path)
+        plan, text = args[0], read(plans[args[0]])
+        if len(args) > 1 and args[1].lower() == "merge":
+            return f"{plan} · {LABELS[language(text)]['merge']}"
     else:
         active = {name: read(path) for name, path in plans.items()}
         active = {name: text for name, text in active.items() if STATUS_ACTIVE.search(text)}
