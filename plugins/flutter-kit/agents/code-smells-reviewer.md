@@ -19,7 +19,7 @@ The task message tells you what to review (a file list, a commit range, or a fea
 
 **This project's rules** — the project CLAUDE.md is in your context; treat its rules as the standard. The usual offenders:
 - Notifiers with UI side effects (`MessageUtils.*`, `Go.*`, `showSuccessBottomSheet`, `runSafely(onError: …showSnackBar)`), or catching broader than `ServerException`.
-- Repository calls without `cancelToken: ref.cancelToken()` (except the documented autoDispose action-notifier exception).
+- Cancellation that doesn't follow the `riverpod` skill's "Cancellation" rule: a screen read without `cancelToken: ref.cancelToken()`; `ref.cancelToken()` on a notifier nothing watches; any cancel token on a write.
 - State classes holding `status` / `errorMessage` / `lastResult`; collections mutated then reassigned into state; generic `update(...)` setters.
 - State class declared `part of` its provider, or inline; `@riverpod` file used as `part of` a barrel.
 - Hard-coded user-facing strings, `Color(0x…)`, unscaled sizes; `.tr()` on a `LocaleKeys` getter; `$`-interpolation instead of `.interpolate`; counted nouns not using `.plural`.

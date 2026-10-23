@@ -49,13 +49,13 @@ class FeatureRepository {
       );
 }
 ```
-- **Every** method takes `CancelToken? cancelToken` and forwards it — fetches and actions alike.
+- **Every** method takes `CancelToken? cancelToken` and forwards it — fetches and actions alike. Whether a caller passes one is decided by `/riverpod` → "Cancellation".
 - List response mapper: `(json) => List.from(json).map((item) => Model.fromJson(item as Map<String, dynamic>)).toList()`. For the paginated `{ pagination, result: [...] }` shape, read `json['result']`.
 - `isFormData: true` ONLY when the body contains `File` objects (image uploads). Plain POSTs must not set it.
 - Repeated boilerplate across methods → factor a private generic helper (e.g. a `_fetchList<T>` that reads `json['result']` and maps each element).
 
 ## Step 5 — Expose a Riverpod provider
-Pick the provider type with the `/riverpod` skill. Always pass `cancelToken: ref.cancelToken()`:
+Pick the provider type with the `/riverpod` skill. A read the screen watches passes `cancelToken: ref.cancelToken()`; for actions and writes follow `/riverpod` → "Cancellation" (writes are never cancelled; a token only on a provider something keeps alive):
 ```dart
 final featureDataProvider = FutureProvider<DataModel>((ref) async {
   final response = await ref.read(featureRepositoryProvider)

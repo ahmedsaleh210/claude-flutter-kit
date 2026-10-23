@@ -80,6 +80,28 @@ test('success: calls repo, persists, returns success', () async {
 - A skipped path: prove it with `verifyNever(() => repo.x(any()))`.
 - A method that rethrows: `await expectLater(container.read(p.notifier).save(), throwsException);`
 
+## Step 5b — Cancellation & lifecycle
+A notifier the UI calls through `ref.read` has no listener — Riverpod may dispose it while its request is in flight. A plain `container.read(...)` in a test reproduces exactly that, so test it directly:
+```dart
+test('requote: request survives with nothing watching the notifier', () async {
+  CancelToken? sent;
+  when(() => repo.requote(any(), cancelToken: any(named: 'cancelToken')))
+      .thenAnswer((invocation) async {
+    sent = invocation.namedArguments[#cancelToken] as CancelToken?;
+    await Future<void>.delayed(Duration.zero); // let a dispose happen mid-request
+    return _ok();
+  });
+
+  final outcome = await container.read(requoteProvider.notifier).requote(params); // no listener
+
+  expect(outcome.result, RequoteResult.success);
+  expect(sent?.isCancelled ?? false, isFalse); // fails if a token tied to the notifier comes back
+});
+```
+- **Writes** (create, book, pay, submit, delete): assert no cancel token is passed at all (`captureAny(named: 'cancelToken')` → `isNull`).
+- **Screen reads** that should cancel on leave: listen to the provider (`container.listen(p, (_, __) {})`), close the subscription, and assert the token was cancelled.
+- After a dispose mid-request, the notifier must not touch state: no exception, nothing written (`ref.mounted` guard).
+
 ## Step 6 — Run & verify
 - One test: `flutter test --plain-name 'success: calls repo'`
 - One file: `flutter test test/<...>_test.dart`
@@ -90,4 +112,5 @@ test('success: calls repo, persists, returns success', () async {
 - [ ] Notifier dependencies use a hand-rolled subclass + `overrideWith`; plain Providers use `Mock` + `overrideWithValue`
 - [ ] `registerFallbackValue` in `setUpAll` for every custom param type used with `any()`
 - [ ] Each test asserts output + outbound `verify().called(n)` + side-effect counters
+- [ ] Every `ref.read`-called notifier has a cancellation test (Step 5b)
 - [ ] Plain `test()` (no `testWidgets` — UI branches belong in `/widget-testing`); only `ServerException` paths exercised for failures

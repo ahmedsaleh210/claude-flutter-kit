@@ -32,7 +32,7 @@ await userController.updateUser(user); // AFTER updateToken
 ```
 
 ## 4 — autoDispose action notifiers: NO cancelToken, capture `ref` BEFORE the await
-This **contradicts** the project-wide "cancelToken on all methods" rule, and the contradiction is intentional. An action-only notifier with no build state (change-email/phone, OTP verify) auto-disposes *during* its network call. So:
+This is the auth case of the general rule in `/riverpod` → "Cancellation": a token is tied to the provider's lifetime, and these are writes. An action-only notifier with no build state (change-email/phone, OTP verify) auto-disposes *during* its network call. So:
 - Pass **no `cancelToken`** — the token would cancel the in-flight request when the notifier disposes.
 - Resolve every `ref`-dependent value **before** the `await` — post-`await` `ref` access on a disposed notifier no-ops silently and drops the user/token update:
 ```dart

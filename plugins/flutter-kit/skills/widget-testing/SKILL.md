@@ -12,7 +12,8 @@ Required when the screen/sheet has a branch a user can hit:
 - **access gating** — whatever axis this app has: guest vs logged-in, owner vs staff permissions, plan tiers. CLAUDE.md "Project specifics" names the axis and how the app expresses it,
 - empty / error / partial-data states the screen decides itself,
 - multi-step flows (wizard / step screens, back behaviour, step validation blocking advance),
-- a tap that must navigate, open a sheet/dialog, or mutate a provider.
+- a tap that must navigate, open a sheet/dialog, or mutate a provider,
+- **external entry points** — push/notification taps and foreground messages, deep links, app resume — triggered while the app is in a **non-default state**: another tab selected, the target screen not mounted, logged out. These are where `UnmountedRefException` and writes to dead providers hide.
 
 Not required for widgets that only lay out data they're given. Mirror the nearest existing `*_test.dart` under the same feature first.
 
@@ -61,6 +62,7 @@ expect(container.read(someFlowProvider).step, 1);              // what state did
 - Gated actions: check "Project specifics" for whether this app **hides** or **disables** them. Hidden → `findsNothing` on the action; disabled → assert the disabled state; replaced (e.g. a login prompt for a guest) → assert the replacement UI **and** `findsNothing` on the gated widget.
 - Off-screen children: `await tester.scrollUntilVisible(finder, 200)` before tapping.
 - Overflow: any `RenderFlex overflowed` fails the test automatically — no extra assertion needed.
+- External entry points: put the app in the non-default state first (e.g. tap another tab), then call the same handler the push / deep link calls, `await tester.pumpAndSettle()`, and assert `expect(tester.takeException(), isNull)` plus the expected result (badge updated, screen opened, or nothing — whatever the spec says).
 - Text fields: `await tester.enterText(find.byType(TextFormField).first, 'x')`.
 
 ## Step 5 — Run

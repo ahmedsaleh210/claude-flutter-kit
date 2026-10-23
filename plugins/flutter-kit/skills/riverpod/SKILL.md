@@ -122,9 +122,22 @@ final featureDataProvider = FutureProvider<DataModel>((ref) async {
 
 ## Step 4 — Hard rules
 - **No UI side effects in notifiers**: no `MessageUtils.showSnackBar`, `showSuccessBottomSheet`, or `Go.*`. No `runSafely(onError: …showSnackBar)`. Return outcomes; the view renders UX.
-- Any repository fetch passes `cancelToken: ref.cancelToken()` (exception: auto-disposing action-only notifiers — see `/auth-flow-gotchas` #4).
+- **Cancellation follows whoever needs the result** — see "Cancellation" below. Never add `ref.cancelToken()` by reflex.
 - Naming: `class Xxx extends _$Xxx` → `xxxProvider`. Prefer the bare class name (drop the `Notifier` suffix) unless it clashes with a type in scope.
 - State classes only when there are multiple independent fields; `Equatable` with `props`.
+
+## Cancellation — `ref.cancelToken()` follows the provider's lifetime, not the user
+`ref.cancelToken()` cancels the request when **the provider is disposed**. An autoDispose provider that nothing watches or listens to is disposed almost immediately after a `ref.read` — while the user is still on the screen — so its request is cancelled mid-flight. Pick by what the request does:
+
+| Request | Cancel when the user leaves? | How |
+|---|---|---|
+| **Read for a screen** (details, list, a price shown on screen) | yes | The screen `ref.watch`es the provider, so it lives exactly as long as the screen → `cancelToken: ref.cancelToken()` is right. Paginated providers get theirs from the factory. |
+| **Screen-only action that's safe to drop** (re-quote, preview, validation call that changes nothing on the server) | yes — only if its lifetime matches the screen | Make the screen keep the notifier alive (`ref.listen(provider, (_, __) {})` / `ref.watch` in `build`) and then use `ref.cancelToken()`; or create a `CancelToken` in the screen's `State`, pass it in, and cancel it in `dispose`. Never `ref.cancelToken()` on a notifier nothing watches. |
+| **Write** (create, book, pay, submit, update, delete) | **no** | Don't pass a cancel token. Cancelling on the client doesn't undo it on the server — the app would report a failure for something that happened, and a retry duplicates it. Let it finish; guard what happens after with `ref.mounted` (notifier) / `mounted` (widget). |
+
+For any notifier called through `ref.read`: resolve every `ref`-dependent value **before** the first `await`, and check `ref.mounted` before touching state after it.
+
+**Example — the coupon re-quote bug:** an autoDispose `requote` action used `ref.cancelToken()`, but only `ref.read` called it — nothing watched it. It was disposed while the request was in flight, the request was cancelled, and every booking with a coupon failed. Fix: either the booking screen keeps it alive with `ref.listen` (then cancel-on-leave works), or — when the result must survive — drop the token. Add a test that fails if the request gets cancelled while nothing is watching the notifier (see `/notifier-testing`).
 
 ## Step 5 — Generate & verify
 - `dart run build_runner build --delete-conflicting-outputs`

@@ -15,6 +15,8 @@ You write the tests a feature owes under the project's Testing rules (CLAUDE.md 
 The task message names the feature, files or commit range; otherwise use the features touched by `git diff HEAD --name-only`. List what needs a test:
 - **Unit (always):** every new or changed notifier — each action notifier's outcome branches (success / invalid / failure, plus any extra cases); every model with a defensive `fromJson`; every params class's `toJson` / `toQueryParameters`.
 - **Widget (when the UI branches):** screens, sheets and wizards with access gating (the app's axis is in CLAUDE.md "Project specifics"), empty/error states they decide themselves, multi-step navigation, or taps that navigate / open a sheet / mutate a provider. One test per branch.
+- **Cancellation (unit):** every notifier the UI calls through `ref.read` — a test that its request is **not cancelled while nothing watches it**, and that writes pass no cancel token. Pattern: `/notifier-testing` → "Cancellation & lifecycle".
+- **External entry points (widget):** push/notification taps and foreground messages, deep links, app resume — trigger each from a **non-default state** (another tab selected, the target screen not mounted, logged out) and assert nothing throws and the right thing happens. Pattern: `/widget-testing` Step 0 and Step 4.
 - Skip widgets that only lay out data they're given.
 
 Check what already exists under `test/` for that feature and add only what's missing.
