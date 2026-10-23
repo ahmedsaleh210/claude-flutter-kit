@@ -18,7 +18,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `dtd-verify` | Runtime verification through the Dart Tooling Daemon |
 | `photo-upload-field` | Mixed local/remote photo pickers with edit mode |
 | `auth-flow-gotchas` | The silent-failure contracts of auth/onboarding flows |
-| `review-batch` | Runs the reviewer agents on a batch; `full` mode adds `/simplify` at the end of a feature |
+| `review-batch` | Runs the three reviewer agents (correctness, smells, architecture) on a batch in parallel; `full` mode adds `/simplify` at the end of a feature |
 | `spec-batch` | Drives spec work in batches across sessions; each plan keeps its own file in `specs/_progress/`. Takes specs, Figma links, or both; drafts a spec from the design when there's none; screens without a design are built to match an existing screen; real architectural decisions get two `code-architect` subagents (minimal vs clean) before you choose (user-invoked only) |
 
 **Agents** (`plugins/flutter-kit/agents/`) — subagents the skills launch; each runs in its own context and returns a report:
@@ -28,6 +28,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `spec-gap-checker` | `/spec-batch` planning, spec changes | Compares specs + OpenAPI with the code: implemented / differs / missing | no |
 | `code-explorer` | start of every batch (2–3 in parallel) | Maps one slice: the code to change, the closest similar feature, or reusable building blocks | no |
 | `code-architect` | batches with a real architectural decision (2 in parallel) | Full blueprint from one stance — minimal change or clean | no |
+| `correctness-reviewer` | `/review-batch` | Functional bugs — logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping — each with the scenario that triggers it | no |
 | `code-smells-reviewer` | `/review-batch` | Code smells, why they matter, cleaner version | no |
 | `architecture-reviewer` | `/review-batch` | Layering, coupling, responsibilities, Riverpod design | no |
 | `test-writer` | after review | Writes and runs unit + widget tests until green | yes (tests) |

@@ -1,6 +1,6 @@
 ---
 name: review-batch
-description: Review the current batch of work with the project's reviewer agents. Default mode (every batch) runs code-smells-reviewer and architecture-reviewer in parallel on the batch and merges their findings into one report. `full` mode (end of a feature) does the same over the whole feature, then runs /simplify. Use when the user says "review the batch", "راجع الدفعة", "/review-batch", or "/review-batch full" at the end of a feature.
+description: Review the current batch of work with the project's reviewer agents. Default mode (every batch) runs correctness-reviewer, code-smells-reviewer and architecture-reviewer in parallel on the batch and merges their findings into one report. `full` mode (end of a feature) does the same over the whole feature, then runs /simplify. Use when the user says "review the batch", "راجع الدفعة", "/review-batch", or "/review-batch full" at the end of a feature.
 argument-hint: "[full] [scope — files, commit range or feature]"
 ---
 
@@ -10,8 +10,8 @@ Arguments: `$ARGUMENTS`. If they contain the word `full` → **full mode**; anyt
 
 | Mode | When | Runs |
 |---|---|---|
-| batch (default) | after every batch | code-smells-reviewer + architecture-reviewer, in parallel |
-| full | once, at the end of a feature | the same two over the whole feature, then `/simplify` |
+| batch (default) | after every batch | correctness-reviewer + code-smells-reviewer + architecture-reviewer, in parallel |
+| full | once, at the end of a feature | the same three over the whole feature, then `/simplify` |
 
 Never run full mode after every batch — `/simplify` is ~80% of review cost; it runs once per feature.
 
@@ -20,16 +20,17 @@ Never run full mode after every batch — `/simplify` is ~80% of review cost; it
 - **Full mode:** the whole feature(s) the user names, or every feature directory touched on this branch / since the feature started.
 - State the scope in one line (mode, N files, features) before launching anything.
 
-## Step 2 — Launch both reviewers in parallel
-In **one message**, two Agent calls:
-- `subagent_type: "flutter-kit:code-smells-reviewer"`
-- `subagent_type: "flutter-kit:architecture-reviewer"`
+## Step 2 — Launch the three reviewers in parallel
+In **one message**, three Agent calls — every batch, whatever it touches:
+- `subagent_type: "flutter-kit:correctness-reviewer"` — functional bugs: logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping
+- `subagent_type: "flutter-kit:code-smells-reviewer"` — code smells and project conventions
+- `subagent_type: "flutter-kit:architecture-reviewer"` — layering, coupling, responsibilities, Riverpod design
 
 Each prompt contains: the exact file list (or commit range and how to diff it), the feature name, one line on what the batch was meant to do (from the spec or conversation), and "report only — don't edit". Don't paste file contents; they read the files themselves.
 
 ## Step 3 — Merge into one report
-- Drop duplicates (the same issue found by both → keep one, note both sources).
-- One list ordered high → medium → low: `severity | file:line | finding | source (smells / arch) | proposed fix`.
+- Drop duplicates (the same issue found by more than one → keep one, note all sources).
+- One list ordered high → medium → low: `severity | file:line | finding | source (bug / smells / arch) | proposed fix`. Bugs come first within the same severity.
 - Mark every item that's an architecture decision under CLAUDE.md "Architecture decisions — ask before applying" as **needs your decision**.
 - Then ask which to apply. Don't apply fixes on your own; when the user says "apply" / "طبق التوصيات", apply the agreed ones, then run `flutter analyze` and the touched features' tests.
 
