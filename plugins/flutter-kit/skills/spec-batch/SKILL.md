@@ -89,7 +89,7 @@ Stop. Tell the user the first batch's title and: open a new session and run `/sp
 **Keep `Stage:` current** as you go — `exploring` → `implementing` → `reviewing` → `testing` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
 
 ### 1. Explore
-Launch 2–3 exploration agents in parallel (`feature-dev:code-explorer` if available, else `Explore`), each with a distinct target: the code this batch changes, the closest existing feature that does something similar, and the UI/core building blocks to reuse. Then read the key files they point to yourself.
+Launch 2–3 `flutter-kit:code-explorer` subagents in parallel (one message), each with a distinct target: the code this batch changes, the closest existing feature that does something similar, and the UI/core building blocks to reuse. Then read the key files they point to yourself.
 
 ### 2. Clarify
 If the batch needs answers the recorded decisions don't cover, ask them now — grouped, recommendation first. Record the answers in the plan file.
@@ -98,9 +98,9 @@ If the batch needs answers the recorded decisions don't cover, ask them now — 
 **Only when the batch involves a real architectural decision** — anything under CLAUDE.md "Architecture decisions — ask before applying": provider count/type/lifetime, file/folder layout, a new shared abstraction in `core/`, state shape. Typical cases: the first state batch of a feature, a new `core/` abstraction, more than one sensible way to structure the files. A batch that follows an existing pattern skips this step entirely — no agents, no question.
 
 When it applies:
-1. **Launch two architects in parallel** (one message): `feature-dev:code-architect` if that agent type is available, otherwise `general-purpose` with the same brief. Give each the batch goal and requirements, the recorded decisions, the key files from step 1, and the instruction to follow CLAUDE.md. Ask for a complete blueprint: files to create/change, providers (type, lifetime), state shape, data flow, how it fits the existing patterns, and its trade-offs.
-   - **A — minimal change:** extend what already exists; fewest new files and abstractions.
-   - **B — clean:** the design that fits the architecture best long-term, even if it touches more code.
+1. **Launch two `flutter-kit:code-architect` subagents in parallel** (one message), one per stance. Give each the batch goal and requirements, the recorded decisions, the key files from step 1, and the instruction to follow CLAUDE.md. Ask for a complete blueprint: files to create/change, providers (type, lifetime), state shape, data flow, how it fits the existing patterns, and its trade-offs.
+   - **A — stance "minimal change":** extend what already exists; fewest new files and abstractions.
+   - **B — stance "clean":** the design that fits the architecture best long-term, even if it touches more code.
 2. **Compare** the two blueprints: where they agree, where they differ, and what each costs. If a middle ground beats both, add it as option **C**.
 3. **Present** the options — recommendation first, one-line trade-off each, and roughly how many files each touches — and **wait** for the user's choice.
 4. **Record** the choice as a decision in the plan file, then build exactly that design in step 4.

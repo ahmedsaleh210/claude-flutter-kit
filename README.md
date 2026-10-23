@@ -19,9 +19,20 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `photo-upload-field` | Mixed local/remote photo pickers with edit mode |
 | `auth-flow-gotchas` | The silent-failure contracts of auth/onboarding flows |
 | `review-batch` | Runs the reviewer agents on a batch; `full` mode adds `/simplify` at the end of a feature |
-| `spec-batch` | Drives spec work in batches across sessions; each plan keeps its own file in `specs/_progress/`. Takes specs, Figma links, or both; drafts a spec from the design when there's none; screens without a design are built to match an existing screen; real architectural decisions get two architect agents (minimal vs clean) before you choose (user-invoked only) |
+| `spec-batch` | Drives spec work in batches across sessions; each plan keeps its own file in `specs/_progress/`. Takes specs, Figma links, or both; drafts a spec from the design when there's none; screens without a design are built to match an existing screen; real architectural decisions get two `code-architect` subagents (minimal vs clean) before you choose (user-invoked only) |
 
-**Agents** (`plugins/flutter-kit/agents/`) — `code-smells-reviewer`, `architecture-reviewer`, `test-writer`, `spec-gap-checker`.
+**Agents** (`plugins/flutter-kit/agents/`) — subagents the skills launch; each runs in its own context and returns a report:
+
+| Agent | Used by | Does | Edits files? |
+|---|---|---|---|
+| `spec-gap-checker` | `/spec-batch` planning, spec changes | Compares specs + OpenAPI with the code: implemented / differs / missing | no |
+| `code-explorer` | start of every batch (2–3 in parallel) | Maps one slice: the code to change, the closest similar feature, or reusable building blocks | no |
+| `code-architect` | batches with a real architectural decision (2 in parallel) | Full blueprint from one stance — minimal change or clean | no |
+| `code-smells-reviewer` | `/review-batch` | Code smells, why they matter, cleaner version | no |
+| `architecture-reviewer` | `/review-batch` | Layering, coupling, responsibilities, Riverpod design | no |
+| `test-writer` | after review | Writes and runs unit + widget tests until green | yes (tests) |
+
+Self-contained: no other plugin is required. `/review-batch full` also runs Claude Code's built-in `/simplify`.
 
 **Hooks** (`plugins/flutter-kit/hooks/`)
 - **dart format** — formats every `.dart` file Claude edits (generated files skipped).
@@ -100,3 +111,6 @@ A single plan never uses any of this — its batches run in the repo folder on t
 - Try local changes before pushing: `claude --plugin-dir ./plugins/flutter-kit` (that session uses the local copy).
 - Validate: `claude plugin validate .` and `claude plugin validate ./plugins/flutter-kit`.
 - Installs from GitHub are cached by version: **bump `version`** in `plugins/flutter-kit/.claude-plugin/plugin.json` on every change you push — patch for wording fixes, minor for a new skill/agent. Users pick it up with `/plugin` → update.
+
+## License
+MIT — see [LICENSE](LICENSE).
