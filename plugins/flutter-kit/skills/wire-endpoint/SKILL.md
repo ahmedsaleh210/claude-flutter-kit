@@ -69,4 +69,4 @@ final featureDataProvider = FutureProvider<DataModel>((ref) async {
 
 ## Step 6 — Consume + verify
 - Screen consumes via `StatusBuilder` (default `.screenCircularLoading`).
-- `flutter analyze` clean; then `/dtd-verify` against a real or mocked response.
+- `flutter analyze` clean; then offer `/dtd-verify` against a real or mocked response — ask the user first and run it only on a clear yes.

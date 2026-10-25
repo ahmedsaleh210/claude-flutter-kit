@@ -122,7 +122,7 @@ Run `build_runner` after provider/asset changes. Finish with `flutter analyze` c
 Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). Any bug the tests expose goes back to step 4.
 
 ### 7. UI check (UI batches)
-If the app is running, check the changed screens with `/dtd-verify` against their design — the Figma frame, or the reference screen for `none — match …` — and say what you actually saw. If it isn't running, say the UI wasn't checked at runtime.
+If the app is running, **ask the user** whether to check the changed screens with `/dtd-verify` against their design — the Figma frame, or the reference screen for `none — match …` — saying it will reload (and may restart) their running app. Run it only on a clear yes, and say what you actually saw. If they decline or the app isn't running, say the UI wasn't checked at runtime and list the screens to look at.
 
 ### 8. Update the plan file
 Mark the batch `done` (set `Stage: done`; drop the `Session:` line), add notes (deviations from the spec or design, things deferred), add new follow-ups, and record any decisions taken this session. After the last batch, set the plan's `Status:` to `done`.

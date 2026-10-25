@@ -15,7 +15,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `notifier-testing` | Unit tests for notifiers with `ProviderContainer` + mocktail |
 | `widget-testing` | Widget tests through a shared `pumpApp` harness |
 | `figma-screen` | Figma → Flutter for RTL designs |
-| `dtd-verify` | Runtime verification through the Dart Tooling Daemon |
+| `dtd-verify` | Runtime verification through the Dart Tooling Daemon — always asks before touching your running app |
 | `photo-upload-field` | Mixed local/remote photo pickers with edit mode |
 | `auth-flow-gotchas` | The silent-failure contracts of auth/onboarding flows |
 | `review-batch` | Runs the three reviewer agents (correctness, smells, architecture) on a batch in parallel; `full` mode adds `/simplify` at the end of a feature |

@@ -1,11 +1,17 @@
 ---
 name: dtd-verify
-description: Verify a Flutter UI/behavior change at runtime in a feature-based Riverpod Flutter app via the Dart Tooling Daemon (DTD) — hot reload/restart, check for runtime errors, and confirm the rendered screen (RTL layout, real translations) matches intent. Use after implementing a screen/widget/i18n change when you want to confirm it actually renders correctly, not just compiles.
+description: Verify a Flutter UI/behavior change at runtime in a feature-based Riverpod Flutter app via the Dart Tooling Daemon (DTD) — hot reload/restart, check for runtime errors, and confirm the rendered screen (RTL layout, real translations) matches intent. Use after implementing a screen/widget/i18n change when you want to confirm it actually renders correctly, not just compiles — but always ask the user first and run it only on a clear yes: it drives their running app.
 ---
 
 # Runtime verification (DTD)
 
 Use the connected Dart MCP tools (`mcp__dart__*`) to drive a running app instance.
+
+## Step 0 — Ask first, every time
+This drives the user's running app: it hot-reloads (and may hot-restart, which resets navigation and app state), navigates, and reads the screen. **Never start without asking.** Say in one line what you'd check and what it will do to the app (e.g. "hot reload, then hot restart to load the new translations — your current screen and state will reset"), then wait:
+- **Yes** → continue with Step 1.
+- **No / no answer** → don't touch the app. Say plainly that the change wasn't checked at runtime, and what the user should look at themselves.
+If the user's own message asked for this check ("check it with /dtd-verify", "verify it on the device"), that is the yes — don't ask twice. Another skill or step deciding it would help is **not** a yes: ask. A yes covers this one check only — ask again next time.
 
 ## Step 1 — Apply the change with hot reload
 `mcp__dart__hot_reload` after edits. Then `mcp__dart__get_runtime_errors` — a clean reload with no exceptions is the first gate.

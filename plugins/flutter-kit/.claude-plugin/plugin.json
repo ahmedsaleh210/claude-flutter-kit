@@ -1,6 +1,6 @@
 {
   "name": "flutter-kit",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Skills, reviewer/test agents and hooks (dart format, spec-batch session names) for feature-based Riverpod Flutter apps",
   "author": {
     "name": "ahmedsaleh210"

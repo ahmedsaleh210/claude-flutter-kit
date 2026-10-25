@@ -97,7 +97,7 @@ padding, adaptive iOS/Android behaviour, and RTL back button:
 - On a normal full screen (`Scaffold` present), `MessageUtils.showSnackBar` is still fine.
 
 ## Step 8 — Verify
-Run `/dtd-verify` to confirm the rendered RTL layout matches the screenshot (hot reload shows false overflows from raw keys; hot restart to see real translations, then navigate back to the screen).
+Offer `/dtd-verify` — ask the user first and run it only on a clear yes — to confirm the rendered RTL layout matches the screenshot (hot reload shows false overflows from raw keys; hot restart to see real translations, then navigate back to the screen).
 
 ## Checklist before done
 - [ ] Layout reads correctly right→left at every nesting level
