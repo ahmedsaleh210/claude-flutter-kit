@@ -88,7 +88,7 @@ Stop. Tell the user the first batch's title and: open a new session and run `/sp
 7. **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
 8. Say in one line which batch you're starting (or resuming), what it covers, and its design source.
 
-**Keep `Stage:` current** as you go — `exploring` → `implementing` → `reviewing` → `testing` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
+**Keep `Stage:` current** as you go — `exploring` → `implementing` → `testing` → `reviewing` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
 
 ### 1. Explore
 Launch 2–3 `flutter-kit:code-explorer` subagents in parallel (one message), each with a distinct target: the code this batch changes, the closest existing feature that does something similar, and the UI/core building blocks to reuse. Then read the key files they point to yourself.
@@ -116,13 +116,13 @@ Follow CLAUDE.md and the plugin's skills (`riverpod`, `wire-endpoint`, `paginati
 
 Run `build_runner` after provider/asset changes. Finish with `flutter analyze` clean.
 
-### 5. Review — one question: what to apply, and commit after
-- Run `/review-batch` on this batch. **Last batch of the plan → `/review-batch full`**: correctness and smells on this batch, a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit), and `/simplify` on the whole plan after the fixes are settled.
-- Present the merged findings and ask **one** question that covers both decisions: which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet.
-- Apply only the chosen items, then `flutter analyze` again. The commit answer is used in step 9.
+### 5. Tests — before the review, so the review covers them
+Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). Any bug the tests expose goes back to step 4 and is fixed before the review.
 
-### 6. Tests
-Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). Any bug the tests expose goes back to step 4.
+### 6. Review — one question: what to apply, and commit after
+- Run `/review-batch` on this batch — its scope includes the batch's tests from step 5. **Last batch of the plan → `/review-batch full`**: correctness and smells on this batch (code and tests), a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit), and `/simplify` on the whole plan's `lib/` once the fixes are settled.
+- Present the merged findings and ask **one** question that covers both decisions: which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet.
+- Apply only the chosen items — including the tests the findings name (their **Test:** lines) — then `flutter analyze` and the touched features' tests again. Review fixes that break a test: fix the code, or update the test only when the agreed change intentionally changed that behaviour. The commit answer is used in step 9.
 
 ### 7. UI check (UI batches)
 If the app is running, **ask the user** whether to check the changed screens with `/dtd-verify` against their design — the Figma frame, or the reference screen for `none — match …` — saying it will reload (and may restart) their running app. Run it only on a clear yes, and say what you actually saw. If they decline or the app isn't running, say the UI wasn't checked at runtime and list the screens to look at.
@@ -134,7 +134,7 @@ Mark the batch `done` (set `Stage: done`; drop the `Session:` line), add notes (
 - **Regenerate first:** run `dart run build_runner build --delete-conflicting-outputs` (and the strings generator if `lang.json` changed) so every generated file matches the code being committed — a provider whose doc comment changed still changes its `.g.dart`.
 - Build the file list: every file this batch created or changed, the plan file, and the generated files that come with them (`*.g.dart` of its providers, `locale_keys.g.dart` / `en.json` / `ar.json` when it changed `lang.json`, `assets.gen.dart` when it added assets).
 - Anything from the **pre-existing changes** (step 0) stays out. If this batch also edited one of those files, ask before including it — the commit would carry someone else's change too. Generated files that changed only because an **earlier** commit forgot to regenerate them stay out too — offer them as a separate `chore(gen): regenerate stale generated files` commit.
-- **If the user already said "commit" in step 5** and tests are green, the list holds nothing unexpected (no pre-existing or stale files), and no review item was skipped silently → commit without asking again, then show the summary (hash, files, test results). **Otherwise** show the summary and ask.
+- **If the user already said "commit" in step 6** and tests are green, the list holds nothing unexpected (no pre-existing or stale files), and no review item was skipped silently → commit without asking again, then show the summary (hash, files, test results). **Otherwise** show the summary and ask.
 - Stage **by path** and commit with a conventional message. Never `git add -A`, `git add .` or `git commit -a`. Never push unless asked.
 
 **In a plan worktree** (branch `plan/<plan>`): after the commit, follow "Plan worktrees → Sync" so the plan keeps up with the base branch.

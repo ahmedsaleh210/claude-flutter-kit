@@ -29,6 +29,7 @@ The task message tells you what to review (file list, commit range, or feature) 
 1. Build the file list for the scope; read each changed file fully, plus what it calls and what calls it.
 2. For every candidate, construct the **concrete scenario**: the input, state or timing that triggers it, and the wrong result. If you can't build a believable scenario from the code, drop it — no "might be a problem".
 3. Check whether an existing test already covers it; if not, name the test that would.
+4. **Review the batch's tests too** (the files under `test/` in scope): a test that can't fail (no real assertion, asserts on the fake's own value, `expect` inside a callback that never runs), a branch of the notifier or screen with no test, a fake that hides the bug (always succeeds, ignores the arguments), `skip:` without a reported bug. Report these like bugs — the scenario is the regression the test would let through.
 
 ## Report format
 One line first: scope reviewed (N files), count per severity. Then, ordered **high → medium → low**:
