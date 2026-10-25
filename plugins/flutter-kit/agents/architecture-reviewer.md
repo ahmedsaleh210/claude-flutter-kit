@@ -13,6 +13,8 @@ You review the **architecture** of a feature: identify design flaws, tight coupl
 ## Scope
 The task message names the feature(s), files or commit range. If it doesn't, take the features touched by the uncommitted changes (`git diff HEAD --name-only`) and review each touched feature as a whole — architecture problems live between files, not inside one hunk.
 
+**Cross-batch review** (the task message says so, usually from `/review-batch full`): every batch was already reviewed on its own. Map the whole feature, but report only what appears **across** batches — the same helper, widget or mapping written twice; one concern done two different ways; layering or provider design that drifted from one batch to the next; a shared piece that should now be extracted. Don't re-report issues inside a single batch unless the latest batch made them worse.
+
 ## First, map the feature
 Before judging, build a short map (it goes at the top of your report):
 - Layers present: `data/` (models, repositories, params), `presentation/` (screens, widgets, notifiers), `enums/`, sub-features.

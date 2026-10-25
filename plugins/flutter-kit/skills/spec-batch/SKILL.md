@@ -117,7 +117,7 @@ Follow CLAUDE.md and the plugin's skills (`riverpod`, `wire-endpoint`, `paginati
 Run `build_runner` after provider/asset changes. Finish with `flutter analyze` clean.
 
 ### 5. Review — one question: what to apply, and commit after
-- Run `/review-batch` on this batch. **Last batch of the plan → `/review-batch full`** (also runs `/simplify` after the fixes are settled).
+- Run `/review-batch` on this batch. **Last batch of the plan → `/review-batch full`**: correctness and smells on this batch, a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit), and `/simplify` on the whole plan after the fixes are settled.
 - Present the merged findings and ask **one** question that covers both decisions: which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet.
 - Apply only the chosen items, then `flutter analyze` again. The commit answer is used in step 9.
 

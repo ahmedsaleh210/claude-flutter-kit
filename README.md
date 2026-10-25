@@ -18,7 +18,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `dtd-verify` | Runtime verification through the Dart Tooling Daemon — always asks before touching your running app |
 | `photo-upload-field` | Mixed local/remote photo pickers with edit mode |
 | `auth-flow-gotchas` | The silent-failure contracts of auth/onboarding flows |
-| `review-batch` | Runs the three reviewer agents (correctness, smells, architecture) on a batch in parallel; `full` mode adds `/simplify` at the end of a feature |
+| `review-batch` | Runs the three reviewer agents (correctness, smells, architecture) on a batch in parallel; `full` mode (end of a feature) keeps bugs and smells on the last batch, adds a cross-batch architecture pass and `/simplify` over the whole feature |
 | `spec-batch` | Drives spec work in batches across sessions — batches sliced by feature (data + state + UI together, ~300–500 lines), one approval for review fixes + commit; each plan keeps its own file in `specs/_progress/`. Takes specs, Figma links, or both; drafts a spec from the design when there's none; screens without a design are built to match an existing screen; real architectural decisions get two `code-architect` subagents (minimal vs clean) before you choose (user-invoked only) |
 
 **Agents** (`plugins/flutter-kit/agents/`) — subagents the skills launch; each runs in its own context and returns a report:
