@@ -31,7 +31,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `correctness-reviewer` | `/review-batch` | Functional bugs — logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping — each with the scenario that triggers it; plus tests that can't fail or miss a branch | no |
 | `code-smells-reviewer` | `/review-batch` | Code smells (in code and tests), why they matter, cleaner version | no |
 | `architecture-reviewer` | `/review-batch` | Layering, coupling, responsibilities, Riverpod design | no |
-| `test-writer` | after implementing, before review | Writes and runs unit + widget tests until green | yes (tests) |
+| `test-writer` | after implementing, before review; again for review bugs | Writes and runs unit + widget tests until green. For each bug the review finds, writes a test that fails before the fix (regression mode) | yes (tests) |
 
 Self-contained: no other plugin is required. `/review-batch full` also runs Claude Code's built-in `/simplify`.
 

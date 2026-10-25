@@ -39,6 +39,8 @@ Each prompt contains: the exact file list (or commit range and how to diff it), 
 - One list ordered high → medium → low: `severity | file:line | finding | source (bug / smells / arch) | proposed fix`. Bugs come first within the same severity.
 - Mark every item that's an architecture decision under CLAUDE.md "Architecture decisions — ask before applying" as **needs your decision**.
 - Then ask which to apply — when `/spec-batch` is driving, ask its combined question instead (which items to apply + commit once tests are green). Don't apply fixes on your own; when the user says "apply" / "طبق التوصيات", apply the agreed ones, then run `flutter analyze` and the touched features' tests.
+- **Every bug that gets fixed gets a regression test, written first:** one `flutter-kit:test-writer` call in regression mode with all the chosen bugs (Scenario + Test line each). Each test must fail on the current code for the scenario's reason; then fix, then rerun green. If a test can't be made to fail, the bug isn't real as described — report it and ask before changing the code.
+- Bugs not applied: list them at the end of the report (title, file:line, scenario, Test line) — `/spec-batch` records them under the plan's Follow-ups.
 
 ## Step 4 — Full mode only: `/simplify`
 After the Step 3 fixes are settled (applied or skipped) and the tests are green, invoke the built-in `simplify` skill on the **feature scope's `lib/` files only** — it hasn't seen any of this code yet. Tests stay out of its scope: they are the check that its cleanups didn't change behaviour, and a simplifier that edits them can merge or weaken their assertions.

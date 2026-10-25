@@ -122,7 +122,9 @@ Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` 
 ### 6. Review — one question: what to apply, and commit after
 - Run `/review-batch` on this batch — its scope includes the batch's tests from step 5. **Last batch of the plan → `/review-batch full`**: correctness and smells on this batch (code and tests), a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit), and `/simplify` on the whole plan's `lib/` once the fixes are settled.
 - Present the merged findings and ask **one** question that covers both decisions: which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet.
-- Apply only the chosen items — including the tests the findings name (their **Test:** lines) — then `flutter analyze` and the touched features' tests again. Review fixes that break a test: fix the code, or update the test only when the agreed change intentionally changed that behaviour. The commit answer is used in step 9.
+- Apply only the chosen items, then `flutter analyze` and the touched features' tests again.
+  - **Bugs (correctness findings) — test first, red then green.** Before touching the code, launch `flutter-kit:test-writer` **once** in regression mode with every chosen bug (its Scenario and **Test:** line). Each test must **fail on the current code** for the reason in the scenario. Then fix the code and rerun: green. A test that can't be made to fail means the bug isn't real as described — say so and ask before fixing it anyway.
+  - **Bugs not applied** (skipped or deferred, high or medium) go to the plan's `## Follow-ups` with the scenario and the Test line, so they aren't lost. Review fixes that break a test: fix the code, or update the test only when the agreed change intentionally changed that behaviour. The commit answer is used in step 9.
 
 ### 7. UI check (UI batches)
 If the app is running, **ask the user** whether to check the changed screens with `/dtd-verify` against their design — the Figma frame, or the reference screen for `none — match …` — saying it will reload (and may restart) their running app. Run it only on a clear yes, and say what you actually saw. If they decline or the app isn't running, say the UI wasn't checked at runtime and list the screens to look at.
@@ -235,6 +237,7 @@ Notes: repository + notifier done; screen next
 
 ## Follow-ups
 - <deferred item> (from batch N)
+- [bug] <title> — path/file.dart:LINE · Scenario: … · Test: … (from batch N review, not applied)
 
 ## Gap report
 <spec-gap-checker table from planning, updated on spec drift>
