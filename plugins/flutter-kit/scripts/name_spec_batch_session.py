@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook: names the session when a prompt starts with /spec-batch.
 
-- `/spec-batch <spec paths or Figma links>` -> "<spec names> · planning"
+- `/spec-batch <new-plan> <spec paths or Figma links>` -> "<new-plan> · planning"
+- `/spec-batch <spec paths or Figma links>` -> "<spec names> · planning", then
+  "<plan> · planning" on a later prompt, once the planning run has written
+  specs/_progress/<plan>.md with `Planning session: <this session id>`
 - `/spec-batch <plan> merge`                -> "<plan> · merge"
 - `/spec-batch` or `/spec-batch <plan> [label]` -> "<plan> · Batch N: <title>", read from
   specs/_progress/<plan>.md (the in-progress batch, else the first pending one whose
   design isn't deferred).
 
 Prints nothing — leaving the generated title alone — when the prompt isn't /spec-batch,
-the session already has a custom name, several plans are active and none was named,
+the session already has a custom name (a planning name is still upgraded to the
+plan's), several plans are active and none was named,
 or no batch is left. Labels are Arabic when FLUTTER_KIT_LANG=ar, or when unset and the
 plan file contains Arabic; English otherwise. Never fails the prompt.
 """
@@ -22,6 +26,8 @@ COMMAND = re.compile(r"^\s*/(?:flutter-kit:)?spec-batch(?:\s+(.*))?$", re.S)
 STATUS_ACTIVE = re.compile(r"^Status:\s*active\b", re.M | re.I)
 # Status is the LAST " — " segment, so titles may contain dashes themselves.
 BATCH = re.compile(r"^###\s+(\d+)\.\s+(.+)\s+—\s+(in-progress|pending|done|deferred)\b", re.M | re.I)
+PLANNING_SESSION = re.compile(r"^Planning session:\s*(\S+)", re.M | re.I)
+PLAN_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 DESIGN = re.compile(r"^Design:\s*(.*)$", re.M | re.I)
 ARABIC = re.compile(r"[؀-ۿ]")
 MAX_LEN = 80
@@ -96,6 +102,11 @@ def title_for(prompt: str, cwd: str):
 
     # First word naming an existing plan -> continue it; the rest is a label (or "merge").
     is_plan_name = bool(args) and args[0] in plans
+    sample = " ".join(read(path)[:4000] for path in plans.values())
+    # A new kebab-case name before the specs -> it's the new plan's name.
+    if len(args) > 1 and not is_plan_name and PLAN_NAME.match(args[0]) \
+            and not os.path.exists(os.path.join(cwd, args[0])):
+        return f"{args[0]} · {LABELS[language(sample)]['planning']}"
     if args and not is_plan_name:
         if len(args) == 1 and "/" not in args[0] and not args[0].endswith(".md") \
                 and not args[0].startswith("http"):
@@ -107,7 +118,6 @@ def title_for(prompt: str, cwd: str):
             if label not in names:
                 names.append(label)
         shown = ", ".join(names[:2]) + ("…" if len(names) > 2 else "")
-        sample = " ".join(read(path)[:4000] for path in plans.values())
         return f"{shown} · {LABELS[language(sample)]['planning']}"
 
     if is_plan_name:
@@ -128,15 +138,38 @@ def title_for(prompt: str, cwd: str):
     return f"{plan} · {LABELS[language(text)]['batch']} {number}: {title}"
 
 
+def planned_here(session_id: str, cwd: str):
+    """Returns "<plan> · planning" for the plan this session is planning, or None."""
+    if not session_id:
+        return None
+    for name, path in plan_files(cwd).items():
+        text = read(path)
+        match = PLANNING_SESSION.search(text)
+        if match and match.group(1) == session_id:
+            return f"{name} · {LABELS[language(text)]['planning']}"
+    return None
+
+
+def is_planning_title(title: str) -> bool:
+    return any(title.endswith(f" · {labels['planning']}") for labels in LABELS.values())
+
+
 def main() -> int:
     try:
         data = json.load(sys.stdin)
     except Exception:
         return 0
-    if data.get("session_title"):
-        return 0  # the user (or an earlier hook) already named this session
+    current = data.get("session_title") or ""
+    cwd = data.get("cwd") or os.getcwd()
     try:
-        title = title_for(data.get("prompt") or "", data.get("cwd") or os.getcwd())
+        if current:
+            # Named already: only upgrade our own "<specs> · planning" to the plan's name.
+            title = planned_here(data.get("session_id") or "", cwd) \
+                if is_planning_title(current) else None
+            if title == current:
+                title = None
+        else:
+            title = title_for(data.get("prompt") or "", cwd)
     except Exception:
         return 0
     if not title:

@@ -84,13 +84,15 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 
 | You type | Session name |
 |---|---|
-| `/spec-batch specs/wallet-flutter.md specs/_enums.md` | `wallet, enums · planning` |
+| `/spec-batch wallet specs/wallet-flutter.md specs/_enums.md` | `wallet · planning` |
+| `/spec-batch specs/wallet-flutter.md specs/_enums.md` | `wallet, enums · planning`, then `wallet · planning` once you confirm the name |
 | `/spec-batch` (one active plan) | `wallet · Batch 3: Withdrawal screen` |
 | `/spec-batch notifications` | `notifications · Batch 1: Notification enums` |
 | `/spec-batch wallet merge` | `wallet · merge` |
 
 - The batch is the one in progress, else the first pending one whose design isn't deferred — the same one `/spec-batch` will work on.
 - With several active plans, `/spec-batch` alone leaves the name untouched (it can't know which plan you'll pick); use `/spec-batch <plan>`.
+- A planning session without a name in the command is renamed to `<plan> · planning` on your next message after the name is confirmed (the plan file records `Planning session: <id>`).
 - A session you already named is never renamed.
 - Labels follow the plan's language: Arabic (`الدفعة`, `تخطيط`) when the plan file contains Arabic, English otherwise. Force one with the `FLUTTER_KIT_LANG` environment variable (`ar` or `en`), e.g. in `~/.claude/settings.json` → `"env": { "FLUTTER_KIT_LANG": "ar" }`.
 - The plugin must be installed (not just loaded for one session) for its hooks to name sessions.

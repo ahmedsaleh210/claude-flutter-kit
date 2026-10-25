@@ -1,7 +1,7 @@
 ---
 name: spec-batch
 description: Drive spec-based work through planned batches, one batch per session, in a feature-based Riverpod Flutter app. First run (with spec paths and/or Figma links) only plans — gap check, spec-vs-design check, open questions, batches — into its own plan file under specs/_progress/; with Figma links and no spec it drafts the spec from the design first. Each later run (no arguments) implements the next batch end to end — explore, architecture options (two architect agents, only when there's a real structural decision), implement (from its Figma frames, or matching an existing screen when there's no design), review, tests, verify, commit on approval — then hands off to a fresh session.
-argument-hint: "[spec files/folder] [Figma links] to plan · [plan name] or nothing to continue"
+argument-hint: "[new plan name] [spec files/folder] [Figma links] to plan · [plan name] or nothing to continue"
 disable-model-invocation: true
 ---
 
@@ -10,10 +10,10 @@ disable-model-invocation: true
 Every plan has its own **plan file**, `specs/_progress/<plan>.md` — one per `/spec-batch` planning run, however many specs it covers. It is the memory between sessions: the plan, the design for each screen, every decision, and each batch's status. A new session knows only what's in that file — anything the user said while planning that a later batch needs (Figma links, decisions, which screen to copy) must be written there. Read it first; keep it current; when it and the conversation disagree, record the user's latest decision in the file. Finished plans stay in the folder as the record of what was built and why.
 
 Pick the mode from `$ARGUMENTS`:
-- **Spec paths and/or Figma links → Plan mode** — a new plan.
+- **Spec paths and/or Figma links → Plan mode** — a new plan. A first word that is a new kebab-case name (not an existing plan, not a path) is the new plan's name: `/spec-batch wallet specs/wallet-flutter.md`.
 - **First word names an existing plan** (no `/`, no `.md`, not a URL) **→ Continue mode** for that plan. Words after it are just a label for the session name and are ignored — except `merge` (`/spec-batch <plan> merge`), which goes straight to "Plan worktrees → Final merge".
 - **No arguments → Continue mode.** Look at the plan files whose `Status:` is `active`:
-  - none → say so (list finished plans, if any) and ask what to plan from;
+  - none → say so (list finished plans, and any `Status: planning` file — an unfinished planning run) and ask what to plan from;
   - one → continue it;
   - several → ask which, showing each plan's name and its next batch.
 - **Legacy:** if an old single-file `specs/_progress.md` exists, offer to move it to `specs/_progress/<name>.md` (ask the name) before anything else.
@@ -28,7 +28,8 @@ Talk to the user in their language. Write plan files (and any drafted spec) in E
 
 ### 1. Inputs and plan name
 - Planning writes no code, so it may run while a batch is in progress in this folder — just mention that batch. It commits only its own plan file.
-- **Plan name** — propose a short kebab-case name for this set of specs (e.g. `notifications-marketing`) and confirm it. If `specs/_progress/<name>.md` already exists and is still `active`, ask: add these specs to it, replace it, or pick another name.
+- **Plan name** — the one given as the first word, else propose a short kebab-case name for this set of specs (e.g. `notifications-marketing`) and confirm it. If `specs/_progress/<name>.md` already exists and is still `active`, ask: add these specs to it, replace it, or pick another name; if it's `planning` (an unfinished run), ask: pick up from it, or start over.
+- **As soon as the name is settled**, create `specs/_progress/<plan>.md` with just the header — `# Spec plan — <plan>`, `Status: planning`, `Planning session: ${CLAUDE_SESSION_ID}`, `Specs: …`. The naming hook reads it and renames this session to `<plan> · planning` on the user's next message. Don't commit it yet.
 - **Specs** — the given `specs/*.md`, plus the matching `api-specs/` files.
 - **Figma links** — optional. For each one, pull the screenshot and metadata with the Figma tools (see `figma-screen` Step 1) and name the screen it shows. If the Figma tools aren't reachable, record the links as-is and say the design couldn't be read yet.
 - **Design only, no spec →** first draft `specs/<feature>-flutter.md` from the frames and the API spec: screens and their purpose, the data each shows, user actions, states (loading / empty / error / each status), validation, endpoints, and an **Open questions** list for what a design can't say (error handling, permissions, edge cases, backend behaviour). **Stop and ask the user to review and correct it** before going on; the reviewed file is the spec from here.
@@ -59,7 +60,7 @@ Turn the ⚠️/❌ items into batches:
 Present the list (title, goal, requirements covered, design, rough size) and let the user reorder, merge or split.
 
 ### 6. Write the plan file
-Create `specs/_progress/<plan>.md` with `Status: active`, using the format below. Record the spec snapshot: `git log -1 --format=%h -- specs api-specs`.
+Fill in `specs/_progress/<plan>.md` using the format below and set `Status: active`. Record the spec snapshot: `git log -1 --format=%h -- specs api-specs`.
 
 ### 7. Commit?
 Ask before committing. Stage only the plan file (and a drafted spec) **by path** — never `git add -A`, `git add .` or `commit -a`. Never push.
@@ -190,14 +191,15 @@ Never push.
 - Never loosen or delete a failing test to get green.
 - Never stage with `git add -A`, `git add .` or `git commit -a` — only this batch's files, by path.
 - **Don't end your turn in the middle of a batch.** End it only when you're asking the user something, or when the batch is handed off. While subagents run, wait for their results and keep going; if something blocks you, say what and ask.
-- **Session names come from a hook**, not from you: the plugin's UserPromptSubmit hook names the session from the plan file (`<plan> · Batch N: <title>`) when the first prompt is `/spec-batch`. If the user says the name is wrong, check the plan file's batch headings (`### N. <title> — <status>`), and tell them they can rename it (`/rename`, or Rename in the session list).
+- **Session names come from a hook**, not from you: the plugin's UserPromptSubmit hook names the session from the plan file (`<plan> · Batch N: <title>`) when the first prompt is `/spec-batch`; a planning session becomes `<plan> · planning` (from the first word, or from the `Planning session:` line once the name is settled). If the user says the name is wrong, check the plan file's batch headings (`### N. <title> — <status>`), and tell them they can rename it (`/rename`, or Rename in the session list).
 - A screen with no design is built to match an existing screen — never styled from scratch.
 
 ## Plan file format — `specs/_progress/<plan>.md`
 ```markdown
 # Spec plan — <plan>
 
-Status: active | done
+Status: planning | active | done
+Planning session: <session id>   (written by the planning run; the naming hook uses it)
 Worktree: ../<repo>--<plan> · branch plan/<plan> · base main   (only for a plan running in a worktree)
 Specs: specs/a.md, specs/b.md, api-specs/x.json
 Spec snapshot: <short hash>   ·   Planned: YYYY-MM-DD
