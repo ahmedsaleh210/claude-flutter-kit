@@ -51,11 +51,12 @@ Record each answer as a decision.
 
 ### 5. Batches
 Turn the ⚠️/❌ items into batches:
-- each one finishable in one session, independently committable, with tests;
-- ordered data/API → state → UI, so later batches never wait on unfinished earlier ones;
-- roughly 3–8 batches for a typical spec set; split a batch that touches more than ~2 features;
-- every UI batch carries a **Design** line: its Figma links, or `none — match <existing screen path>`, or `deferred — waiting for design`.
-Present the list (title, goal, requirements covered, design) and let the user reorder, merge or split.
+- **Slice by feature, not by layer.** A batch delivers one thing the user can see or use, end to end: its models/repository, its state, and its UI together. Don't plan a "data" batch followed by "UI" batches over the same screens — that triples the fixed cost per feature (explorers, three reviewers, tests, a session, approvals) and every one of those batches touches the same files.
+  - A data-only batch is right only when **several later batches** consume that data (a shared model, a new endpoint used by three screens), or when there is no UI at all.
+- **Size:** aim for roughly **300–500 lines of production code** (tests extra) — a whole feature that still finishes in one session. That's a guideline, not a rule: a self-contained small feature can be smaller; don't go much past ~2× that, or reviews lose focus and the session risks compaction. Merge neighbouring small items that touch the same screens.
+- Independently committable, with tests; a batch never waits on an unfinished later one — put shared foundations first.
+- Every UI batch carries a **Design** line: its Figma links, or `none — match <existing screen path>`, or `deferred — waiting for design`.
+Present the list (title, goal, requirements covered, design, rough size) and let the user reorder, merge or split.
 
 ### 6. Write the plan file
 Create `specs/_progress/<plan>.md` with `Status: active`, using the format below. Record the spec snapshot: `git log -1 --format=%h -- specs api-specs`.
@@ -114,9 +115,10 @@ Follow CLAUDE.md and the plugin's skills (`riverpod`, `wire-endpoint`, `paginati
 
 Run `build_runner` after provider/asset changes. Finish with `flutter analyze` clean.
 
-### 5. Review — show first, apply on approval
+### 5. Review — one question: what to apply, and commit after
 - Run `/review-batch` on this batch. **Last batch of the plan → `/review-batch full`** (also runs `/simplify` after the fixes are settled).
-- Present the merged findings and **wait** for the user to choose what to apply. Apply only those, then `flutter analyze` again.
+- Present the merged findings and ask **one** question that covers both decisions: which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet.
+- Apply only the chosen items, then `flutter analyze` again. The commit answer is used in step 9.
 
 ### 6. Tests
 Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). Any bug the tests expose goes back to step 4.
@@ -127,10 +129,12 @@ If the app is running, **ask the user** whether to check the changed screens wit
 ### 8. Update the plan file
 Mark the batch `done` (set `Stage: done`; drop the `Session:` line), add notes (deviations from the spec or design, things deferred), add new follow-ups, and record any decisions taken this session. After the last batch, set the plan's `Status:` to `done`.
 
-### 9. Commit — ask first, this batch's files only
+### 9. Commit — this batch's files only
+- **Regenerate first:** run `dart run build_runner build --delete-conflicting-outputs` (and the strings generator if `lang.json` changed) so every generated file matches the code being committed — a provider whose doc comment changed still changes its `.g.dart`.
 - Build the file list: every file this batch created or changed, the plan file, and the generated files that come with them (`*.g.dart` of its providers, `locale_keys.g.dart` / `en.json` / `ar.json` when it changed `lang.json`, `assets.gen.dart` when it added assets).
-- Anything from the **pre-existing changes** (step 0) stays out. If this batch also edited one of those files, ask before including it — the commit would carry someone else's change too.
-- Show a short summary — what changed, the exact file list, test results, review items skipped — and ask. On yes, stage **by path** and commit with a conventional message. Never `git add -A`, `git add .` or `git commit -a`. Never push unless asked.
+- Anything from the **pre-existing changes** (step 0) stays out. If this batch also edited one of those files, ask before including it — the commit would carry someone else's change too. Generated files that changed only because an **earlier** commit forgot to regenerate them stay out too — offer them as a separate `chore(gen): regenerate stale generated files` commit.
+- **If the user already said "commit" in step 5** and tests are green, the list holds nothing unexpected (no pre-existing or stale files), and no review item was skipped silently → commit without asking again, then show the summary (hash, files, test results). **Otherwise** show the summary and ask.
+- Stage **by path** and commit with a conventional message. Never `git add -A`, `git add .` or `git commit -a`. Never push unless asked.
 
 **In a plan worktree** (branch `plan/<plan>`): after the commit, follow "Plan worktrees → Sync" so the plan keeps up with the base branch.
 
@@ -185,6 +189,8 @@ Never push.
 - Don't skip review or tests to save time. Don't run `/feature-dev` inside this flow.
 - Never loosen or delete a failing test to get green.
 - Never stage with `git add -A`, `git add .` or `git commit -a` — only this batch's files, by path.
+- **Don't end your turn in the middle of a batch.** End it only when you're asking the user something, or when the batch is handed off. While subagents run, wait for their results and keep going; if something blocks you, say what and ask.
+- **Session names come from a hook**, not from you: the plugin's UserPromptSubmit hook names the session from the plan file (`<plan> · Batch N: <title>`) when the first prompt is `/spec-batch`. If the user says the name is wrong, check the plan file's batch headings (`### N. <title> — <status>`), and tell them they can rename it (`/rename`, or Rename in the session list).
 - A screen with no design is built to match an existing screen — never styled from scratch.
 
 ## Plan file format — `specs/_progress/<plan>.md`

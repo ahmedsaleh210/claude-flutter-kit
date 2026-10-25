@@ -32,7 +32,7 @@ Each prompt contains: the exact file list (or commit range and how to diff it), 
 - Drop duplicates (the same issue found by more than one → keep one, note all sources).
 - One list ordered high → medium → low: `severity | file:line | finding | source (bug / smells / arch) | proposed fix`. Bugs come first within the same severity.
 - Mark every item that's an architecture decision under CLAUDE.md "Architecture decisions — ask before applying" as **needs your decision**.
-- Then ask which to apply. Don't apply fixes on your own; when the user says "apply" / "طبق التوصيات", apply the agreed ones, then run `flutter analyze` and the touched features' tests.
+- Then ask which to apply — when `/spec-batch` is driving, ask its combined question instead (which items to apply + commit once tests are green). Don't apply fixes on your own; when the user says "apply" / "طبق التوصيات", apply the agreed ones, then run `flutter analyze` and the touched features' tests.
 
 ## Step 4 — Full mode only: `/simplify`
 After the Step 3 fixes are settled (applied or skipped), invoke the built-in `simplify` skill on the same scope. It applies its own cleanups. Finish with `flutter analyze` and `flutter test` for the touched features, and report what changed.

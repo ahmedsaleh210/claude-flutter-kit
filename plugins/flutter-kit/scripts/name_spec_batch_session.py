@@ -20,7 +20,8 @@ import sys
 
 COMMAND = re.compile(r"^\s*/(?:flutter-kit:)?spec-batch(?:\s+(.*))?$", re.S)
 STATUS_ACTIVE = re.compile(r"^Status:\s*active\b", re.M | re.I)
-BATCH = re.compile(r"^###\s+(\d+)\.\s+(.+?)\s+—\s+(\S+)", re.M)
+# Status is the LAST " — " segment, so titles may contain dashes themselves.
+BATCH = re.compile(r"^###\s+(\d+)\.\s+(.+)\s+—\s+(in-progress|pending|done|deferred)\b", re.M | re.I)
 DESIGN = re.compile(r"^Design:\s*(.*)$", re.M | re.I)
 ARABIC = re.compile(r"[؀-ۿ]")
 MAX_LEN = 80
