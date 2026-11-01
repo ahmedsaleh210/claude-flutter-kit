@@ -15,6 +15,8 @@ the session already has a custom name (a planning name is still upgraded to the
 plan's), several plans are active and none was named,
 or no batch is left. Labels are Arabic when FLUTTER_KIT_LANG=ar, or when unset and the
 plan file contains Arabic; English otherwise. Never fails the prompt.
+Context blocks a client adds around the prompt (VS Code's <ide_opened_file>, …) are
+ignored, so an open file doesn't hide the command.
 """
 
 import json
@@ -22,6 +24,9 @@ import os
 import re
 import sys
 
+# Context blocks a client wraps around the prompt, e.g. VS Code's
+# <ide_opened_file>…</ide_opened_file> / <ide_selection>…</ide_selection>.
+CONTEXT_BLOCK = re.compile(r"^\s*<([A-Za-z][\w-]*)>.*?</\1>\s*", re.S)
 COMMAND = re.compile(r"^\s*/(?:flutter-kit:)?spec-batch(?:\s+(.*))?$", re.S)
 STATUS_ACTIVE = re.compile(r"^Status:\s*active\b", re.M | re.I)
 # Status is the LAST " — " segment, so titles may contain dashes themselves.
@@ -93,8 +98,18 @@ def spec_label(token: str) -> str:
     return re.sub(r"-flutter$", "", stem.lstrip("_"))
 
 
+def strip_context(prompt: str) -> str:
+    """Removes context blocks before and after the typed text."""
+    while (match := CONTEXT_BLOCK.match(prompt)):
+        prompt = prompt[match.end():]
+    tail = re.compile(r"\s*<([A-Za-z][\w-]*)>(?:(?!<\1>).)*?</\1>\s*$", re.S)
+    while (match := tail.search(prompt)):
+        prompt = prompt[:match.start()]
+    return prompt
+
+
 def title_for(prompt: str, cwd: str):
-    match = COMMAND.match(prompt)
+    match = COMMAND.match(strip_context(prompt))
     if not match:
         return None
     args = (match.group(1) or "").split()
