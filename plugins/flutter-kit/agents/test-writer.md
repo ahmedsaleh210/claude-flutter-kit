@@ -38,6 +38,7 @@ When the task message gives you bug findings (from `correctness-reviewer`: Scena
 - If you can't make it fail, the bug may not be real as described: keep the test, and report it as "could not reproduce" with what you tried.
 - **Leave these tests failing** — no `skip:`; the fix comes next, in the main session. Never touch production code.
 - Report per bug: finding title → test file and test name → the failure line (expected vs actual), or "could not reproduce".
+- The same call may also carry **tests-check findings** (weak or missing tests, convention breaks): fix or add those tests too — they must pass on the current code, unlike the regression tests.
 
 ## Report
 - Files created/changed, and per file the cases covered (one line each).

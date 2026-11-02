@@ -29,7 +29,17 @@ The task message tells you what to review (file list, commit range, or feature) 
 1. Build the file list for the scope; read each changed file fully, plus what it calls and what calls it.
 2. For every candidate, construct the **concrete scenario**: the input, state or timing that triggers it, and the wrong result. If you can't build a believable scenario from the code, drop it — no "might be a problem".
 3. Check whether an existing test already covers it; if not, name the test that would.
-4. **Review the batch's tests too** (the files under `test/` in scope): a test that can't fail (no real assertion, asserts on the fake's own value, `expect` inside a callback that never runs), a branch of the notifier or screen with no test, a fake that hides the bug (always succeeds, ignores the arguments), `skip:` without a reported bug. Report these like bugs — the scenario is the regression the test would let through.
+4. Review production code only, unless the task message asks for a **tests check** (below).
+
+## Tests-check mode
+When the task message says **tests check**, review only the test files in scope, reading the production code they cover for reference:
+- **Tests that can't fail** — no real assertion, asserting on the fake's own value, `expect` inside a callback that never runs, a `pump` that never reaches the state under test.
+- **Branches with no test** — an outcome of a notifier, a state of a screen, a role or status the code handles that no test reaches.
+- **Fakes that hide a bug** — always succeed, ignore their arguments, return what the test then asserts.
+- `skip:` without a reported bug.
+- **Conventions** — fakes or helpers declared per file instead of `test/helpers/`; `Mock`s where the project uses hand-rolled subclasses; HTTP faked instead of overriding a provider or repository; copy-pasted setup that wants a helper.
+
+Report each as a finding with **Scenario** = the regression the test would let through, and **Fix** = the test to add or change. Keep it short — this check runs on the critical path.
 
 ## Report format
 One line first: scope reviewed (N files), count per severity. Then, ordered **high → medium → low**:

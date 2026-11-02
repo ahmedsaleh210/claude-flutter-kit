@@ -29,7 +29,7 @@ The task message tells you what to review (a file list, a commit range, or a fea
 - Nested scans (`.firstWhere`/`.contains` inside a loop), sequential `await`s that could be `Future.wait`.
 - Rebuilding a core widget that already exists (sheets, pickers, selection fields, buttons) instead of reusing it.
 
-**In tests** (files under `test/` in scope) — fakes or helpers declared per file instead of `test/helpers/`; `Mock`s where the project uses hand-rolled subclasses; HTTP faked instead of overriding a provider or repository; copy-pasted arrange blocks that want a helper; test names that don't say the case.
+Tests are not yours: their conventions are covered by the correctness reviewer's tests check.
 
 ## How to work
 1. Build the file list for the scope; read each changed file fully.

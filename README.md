@@ -18,7 +18,7 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `dtd-verify` | Runtime verification through the Dart Tooling Daemon — always asks before touching your running app |
 | `photo-upload-field` | Mixed local/remote photo pickers with edit mode |
 | `auth-flow-gotchas` | The silent-failure contracts of auth/onboarding flows |
-| `review-batch` | Runs the three reviewer agents (correctness, smells, architecture) on a batch in parallel; `full` mode (end of a feature) keeps bugs and smells on the last batch, adds a cross-batch architecture pass and `/simplify` over the whole feature's `lib/`. Tests are written before the review and reviewed with the code |
+| `review-batch` | Runs the three reviewer agents (correctness, smells, architecture) on a batch in parallel; `full` mode (end of a feature) keeps bugs and smells on the last batch, adds a cross-batch architecture pass and `/simplify` over the whole feature's `lib/`. In `/spec-batch` the reviewers run alongside the test-writer, then a short tests check reviews the new tests |
 | `spec-batch` | Drives spec work in batches across sessions — batches sliced by feature (data + state + UI together, ~300–500 lines), one approval for review fixes + commit; each plan keeps its own file in `specs/_progress/`. Takes specs, Figma links, or both; drafts a spec from the design when there's none; screens without a design are built to match an existing screen; real architectural decisions get two `code-architect` subagents (minimal vs clean) before you choose (user-invoked only) |
 
 **Agents** (`plugins/flutter-kit/agents/`) — subagents the skills launch; each runs in its own context and returns a report:
@@ -28,10 +28,10 @@ A [Claude Code](https://code.claude.com) plugin marketplace with one plugin, **f
 | `spec-gap-checker` | `/spec-batch` planning, spec changes | Compares specs + OpenAPI with the code: implemented / differs / missing | no |
 | `code-explorer` | start of every batch (2–3 in parallel) | Maps one slice: the code to change, the closest similar feature, or reusable building blocks | no |
 | `code-architect` | batches with a real architectural decision (2 in parallel) | Full blueprint from one stance — minimal change or clean | no |
-| `correctness-reviewer` | `/review-batch` | Functional bugs — logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping — each with the scenario that triggers it; plus tests that can't fail or miss a branch | no |
-| `code-smells-reviewer` | `/review-batch` | Code smells (in code and tests), why they matter, cleaner version | no |
+| `correctness-reviewer` | `/review-batch` | Functional bugs — logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping — each with the scenario that triggers it; in tests-check mode, tests that can't fail, untested branches and test conventions | no |
+| `code-smells-reviewer` | `/review-batch` | Code smells, why they matter, cleaner version | no |
 | `architecture-reviewer` | `/review-batch` | Layering, coupling, responsibilities, Riverpod design | no |
-| `test-writer` | after implementing, before review; again for review bugs | Writes and runs unit + widget tests until green. For each bug the review finds, writes a test that fails before the fix (regression mode) | yes (tests) |
+| `test-writer` | after implementing, alongside the reviewers; again for review bugs | Writes and runs unit + widget tests until green. For each bug the review finds, writes a test that fails before the fix (regression mode) | yes (tests) |
 
 Self-contained: no other plugin is required. `/review-batch full` also runs Claude Code's built-in `/simplify`.
 

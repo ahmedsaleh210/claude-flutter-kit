@@ -16,7 +16,7 @@ Arguments: `$ARGUMENTS`. If they contain the word `full` → **full mode**; anyt
 Never run full mode after every batch — `/simplify` is ~80% of review cost; it runs once per feature.
 
 ## Step 1 — Fix the scope
-- **Tests are part of the scope**: the batch's new and changed files under `test/` go to correctness and smells with the code. Write them first (`flutter-kit:test-writer`) when they don't exist yet — a review that never sees the tests can't tell a test that can't fail from one that guards the behaviour.
+- **Production code and tests are reviewed separately**: the three reviewers take the batch's production code (Step 2) — they can run while the tests are still being written. The batch's tests get a short **tests check** of their own once they exist (Step 2b) — a review that never sees the tests can't tell a test that can't fail from one that guards the behaviour.
 - **Batch mode:** the user's scope if given; otherwise the uncommitted changes (`git diff HEAD --name-only` + untracked files under `lib/` and `test/`). If the tree is clean, the commits of this batch — find where the batch started in the conversation or `git log`; if that's unclear, ask instead of guessing.
 - **Full mode** has two scopes:
   - **Batch scope** — the last batch, found as in batch mode. Correctness and smells review only this: every earlier batch was already reviewed by all three before its commit, so going over it again repeats work and pulls fixes into old commits.
@@ -26,13 +26,16 @@ Never run full mode after every batch — `/simplify` is ~80% of review cost; it
 
 ## Step 2 — Launch the three reviewers in parallel
 In **one message**, three Agent calls — every batch, whatever it touches:
-- `subagent_type: "flutter-kit:correctness-reviewer"` — functional bugs: logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping; and whether the batch's tests actually guard them
-- `subagent_type: "flutter-kit:code-smells-reviewer"` — code smells and project conventions, in code and tests
+- `subagent_type: "flutter-kit:correctness-reviewer"` — functional bugs: logic vs intent, edge cases, async/lifecycle, state, error handling, data mapping
+- `subagent_type: "flutter-kit:code-smells-reviewer"` — code smells and project conventions
 - `subagent_type: "flutter-kit:architecture-reviewer"` — layering, coupling, responsibilities, Riverpod design (production code only)
 
 In **full mode**, correctness and smells get the batch scope; architecture gets the feature scope plus the batch scope, with "**cross-batch review**: the batches were each reviewed already — report only what shows up across them (duplicated helpers or widgets, the same thing done two ways, boundaries or provider design that drifted between batches)".
 
 Each prompt contains: the exact file list (or commit range and how to diff it), the feature name, one line on what the batch was meant to do (from the spec or conversation), and "report only — don't edit". Don't paste file contents; they read the files themselves.
+
+## Step 2b — Tests check (once the batch's tests exist)
+One `flutter-kit:correctness-reviewer` call in **tests-check mode**: the batch's new and changed files under `test/`, plus the production files they cover for reference. It reports tests that can't fail, branches with no test, fakes that hide a bug, `skip:` without a reported bug, and test-convention breaks. When `/spec-batch` drives, it runs after the test-writer returns, while the reviewers' findings are already with the user; standalone, run it alongside Step 2 if the tests already exist.
 
 ## Step 3 — Merge into one report
 - Drop duplicates (the same issue found by more than one → keep one, note all sources).

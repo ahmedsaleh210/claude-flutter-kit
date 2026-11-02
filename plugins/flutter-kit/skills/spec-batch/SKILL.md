@@ -88,7 +88,7 @@ Stop. Tell the user the first batch's title and: open a new session and run `/sp
 7. **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
 8. Say in one line which batch you're starting (or resuming), what it covers, and its design source.
 
-**Keep `Stage:` current** as you go — `exploring` → `implementing` → `testing` → `reviewing` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
+**Keep `Stage:` current** as you go — `exploring` → `implementing` → `testing & reviewing` → `applying` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
 
 ### 1. Explore
 Launch 2–3 `flutter-kit:code-explorer` subagents in parallel (one message), each with a distinct target: the code this batch changes, the closest existing feature that does something similar, and the UI/core building blocks to reuse. Then read the key files they point to yourself.
@@ -116,15 +116,20 @@ Follow CLAUDE.md and the plugin's skills (`riverpod`, `wire-endpoint`, `paginati
 
 Run `build_runner` after provider/asset changes. Finish with `flutter analyze` clean.
 
-### 5. Tests — before the review, so the review covers them
-Launch `flutter-kit:test-writer` on this batch's scope. Then run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). Any bug the tests expose goes back to step 4 and is fixed before the review.
+### 5. Tests and review — in parallel
+The test-writer and the reviewers don't need each other's output, so they run at the same time and nobody waits in between.
+- **In one message**, launch `flutter-kit:test-writer` on this batch's scope **and** the three reviewers from `/review-batch` Step 2 on the batch's production code. **Last batch of the plan → full mode**: correctness and smells on this batch, a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit).
+- **Don't edit code while the test-writer runs** — it is writing tests against the code as it is.
+- **When the reviewers return** (usually first): merge their findings (`/review-batch` Step 3) and ask **one** question right away, while the tests are still being written — which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet. The commit answer is used in step 9.
+- **When the test-writer returns:** run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). A bug the tests expose is fixed as in step 4 before going on.
+- **Tests check:** launch `flutter-kit:correctness-reviewer` once in **tests-check mode** on the batch's test files (`/review-batch` Step 2b) — tests that can't fail, branches with no test, fakes that hide a bug, test conventions. A few minutes; it reads the tests against the code they cover.
 
-### 6. Review — one question: what to apply, and commit after
-- Run `/review-batch` on this batch — its scope includes the batch's tests from step 5. **Last batch of the plan → `/review-batch full`**: correctness and smells on this batch (code and tests), a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit), and `/simplify` on the whole plan's `lib/` once the fixes are settled.
-- Present the merged findings and ask **one** question that covers both decisions: which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet.
-- Apply only the chosen items, then `flutter analyze` and the touched features' tests again.
-  - **Bugs (correctness findings) — test first, red then green.** Before touching the code, launch `flutter-kit:test-writer` **once** in regression mode with every chosen bug (its Scenario and **Test:** line). Each test must **fail on the current code** for the reason in the scenario. Then fix the code and rerun: green. A test that can't be made to fail means the bug isn't real as described — say so and ask before fixing it anyway.
-  - **Bugs not applied** (skipped or deferred, high or medium) go to the plan's `## Follow-ups` with the scenario and the Test line, so they aren't lost. Review fixes that break a test: fix the code, or update the test only when the agreed change intentionally changed that behaviour. The commit answer is used in step 9.
+### 6. Apply — test first for bugs
+- Apply only the items the user chose, then `flutter analyze` and the touched features' tests again.
+  - **Bugs (correctness findings) — test first, red then green.** Before touching the code, launch `flutter-kit:test-writer` **once** in regression mode with every chosen bug (its Scenario and **Test:** line), plus the tests check's findings (missing or weak tests to add or fix). Each regression test must **fail on the current code** for the reason in the scenario. Then fix the code and rerun: green. A test that can't be made to fail means the bug isn't real as described — say so and ask before fixing it anyway.
+  - **Tests-check findings** only touch tests, so they go in without another question — list them in the summary. One that exposes a production bug goes through the bug flow above and is asked about first.
+  - **Bugs not applied** (skipped or deferred, high or medium) go to the plan's `## Follow-ups` with the scenario and the Test line, so they aren't lost. Review fixes that break a test: fix the code, or update the test only when the agreed change intentionally changed that behaviour.
+- **Last batch:** once the fixes are settled and the tests are green, `/simplify` on the whole plan's `lib/` (`/review-batch` Step 4).
 
 ### 7. UI check (UI batches)
 If the app is running, **ask the user** whether to check the changed screens with `/dtd-verify` against their design — the Figma frame, or the reference screen for `none — match …` — saying it will reload (and may restart) their running app. Run it only on a clear yes, and say what you actually saw. If they decline or the app isn't running, say the UI wasn't checked at runtime and list the screens to look at.
@@ -136,7 +141,7 @@ Mark the batch `done` (set `Stage: done`; drop the `Session:` line), add notes (
 - **Regenerate first:** run `dart run build_runner build --delete-conflicting-outputs` (and the strings generator if `lang.json` changed) so every generated file matches the code being committed — a provider whose doc comment changed still changes its `.g.dart`.
 - Build the file list: every file this batch created or changed, the plan file, and the generated files that come with them (`*.g.dart` of its providers, `locale_keys.g.dart` / `en.json` / `ar.json` when it changed `lang.json`, `assets.gen.dart` when it added assets).
 - Anything from the **pre-existing changes** (step 0) stays out. If this batch also edited one of those files, ask before including it — the commit would carry someone else's change too. Generated files that changed only because an **earlier** commit forgot to regenerate them stay out too — offer them as a separate `chore(gen): regenerate stale generated files` commit.
-- **If the user already said "commit" in step 6** and tests are green, the list holds nothing unexpected (no pre-existing or stale files), and no review item was skipped silently → commit without asking again, then show the summary (hash, files, test results). **Otherwise** show the summary and ask.
+- **If the user already said "commit" in step 5** and tests are green, the list holds nothing unexpected (no pre-existing or stale files), and no review item was skipped silently → commit without asking again, then show the summary (hash, files, test results). **Otherwise** show the summary and ask.
 - Stage **by path** and commit with a conventional message. Never `git add -A`, `git add .` or `git commit -a`. Never push unless asked.
 
 **In a plan worktree** (branch `plan/<plan>`): after the commit, follow "Plan worktrees → Sync" so the plan keeps up with the base branch.
