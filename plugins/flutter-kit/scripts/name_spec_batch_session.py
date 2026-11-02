@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook: names the session when a prompt starts with /spec-batch.
 
-- `/spec-batch <new-plan> <spec paths or Figma links>` -> "<new-plan> · planning"
+- `/spec-batch [fast] <new-plan> <spec paths or Figma links>` -> "<new-plan> · planning"
 - `/spec-batch <spec paths or Figma links>` -> "<spec names> · planning", then
   "<plan> · planning" on a later prompt, once the planning run has written
   specs/_progress/<plan>.md with `Planning session: <this session id>`
@@ -114,6 +114,8 @@ def title_for(prompt: str, cwd: str):
         return None
     args = (match.group(1) or "").split()
     plans = plan_files(cwd)
+    if args and args[0].lower() == "fast" and "fast" not in plans:
+        args = args[1:]  # `/spec-batch fast …` plans in fast mode; the name comes after it
 
     # First word naming an existing plan -> continue it; the rest is a label (or "merge").
     is_plan_name = bool(args) and args[0] in plans

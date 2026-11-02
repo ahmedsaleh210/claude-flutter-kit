@@ -103,6 +103,9 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 - **An interrupted batch resumes** from its recorded stage after checking what's already committed or on disk — nothing is rewritten.
 - **No Figma, no designed screen:** if a batch has Figma frames but the Figma tools don't answer, the UI work stops until they do (or you explicitly accept matching an existing screen for now).
 
+### Fast mode (opt-in, for chosen cases)
+`/spec-batch fast [name] specs/…` plans a **fast** plan (`Mode: fast` in its plan file). It trades quality for time: batches of ~800–1200 lines, no architect agents (the session presents the options itself), unit tests only (no widget tests), and no review per batch — instead a last **Final review** batch reviews every batch's commit in parallel, adds a cross-batch architecture pass and a tests check, writes regression tests for the bugs you fix, then runs `/simplify`. Planning flags batches that touch money, auth or irreversible writes and asks whether each stays fast. A plan without `Mode: fast` never reads any of this — the normal workflow is unchanged.
+
 ### Two plans in parallel
 A single plan never uses any of this — its batches run in the repo folder on the current branch. One running batch per folder. To work on a second plan while another plan's batch is running, choose the worktree option when `/spec-batch` offers it:
 - It creates a git worktree **next to** the repo (`../<repo>--<plan>`, branch `plan/<plan>`) from your local HEAD, copies the git-ignored local files the app and tools need (`.env`, `.claude/settings.local.json`, signing config, ignored pubspec assets), moves the session into it (you approve the move), runs `flutter pub get` + `build_runner`, and continues there. All of that plan's batches run in that folder, one after another.

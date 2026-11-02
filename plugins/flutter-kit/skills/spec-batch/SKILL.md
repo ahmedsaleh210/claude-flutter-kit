@@ -1,7 +1,7 @@
 ---
 name: spec-batch
 description: Drive spec-based work through planned batches, one batch per session, in a feature-based Riverpod Flutter app. First run (with spec paths and/or Figma links) only plans — gap check, spec-vs-design check, open questions, batches — into its own plan file under specs/_progress/; with Figma links and no spec it drafts the spec from the design first. Each later run (no arguments) implements the next batch end to end — explore, architecture options (two architect agents, only when there's a real structural decision), implement (from its Figma frames, or matching an existing screen when there's no design), review, tests, verify, commit on approval — then hands off to a fresh session.
-argument-hint: "[new plan name] [spec files/folder] [Figma links] to plan · [plan name] or nothing to continue"
+argument-hint: "[fast] [new plan name] [spec files/folder] [Figma links] to plan · [plan name] or nothing to continue"
 disable-model-invocation: true
 ---
 
@@ -11,6 +11,7 @@ Every plan has its own **plan file**, `specs/_progress/<plan>.md` — one per `/
 
 Pick the mode from `$ARGUMENTS`:
 - **Spec paths and/or Figma links → Plan mode** — a new plan. A first word that is a new kebab-case name (not an existing plan, not a path) is the new plan's name: `/spec-batch wallet specs/wallet-flutter.md`.
+- **`fast` as the first word → Plan mode in fast mode** (`/spec-batch fast [name] specs/…`): read `${CLAUDE_SKILL_DIR}/fast.md` before planning. Fast mode is the user's choice only — never suggest it or switch a plan to it.
 - **First word names an existing plan** (no `/`, no `.md`, not a URL) **→ Continue mode** for that plan. Words after it are just a label for the session name and are ignored — except `merge` (`/spec-batch <plan> merge`), which goes straight to "Plan worktrees → Final merge".
 - **No arguments → Continue mode.** Look at the plan files whose `Status:` is `active`:
   - none → say so (list finished plans, and any `Status: planning` file — an unfinished planning run) and ask what to plan from;
@@ -87,6 +88,8 @@ Stop. Tell the user the first batch's title and: open a new session and run `/sp
 6. **Spec drift:** `git diff --stat <snapshot>..HEAD -- specs api-specs` (plus uncommitted spec changes). If anything changed, run `flutter-kit:spec-gap-checker` on the changed files only, show what it means for the remaining batches, and update the plan and snapshot once the user agrees.
 7. **Deferred designs:** if a deferred batch is next in line, ask whether its design is ready (take the links) or keep it deferred and move on.
 8. Say in one line which batch you're starting (or resuming), what it covers, and its design source.
+
+**Fast plans:** if the plan file's header says `Mode: fast`, read `${CLAUDE_SKILL_DIR}/fast.md` now — it replaces steps 3, 5 and 6 and runs the final review batch. Any other plan follows the steps below as written.
 
 **Keep `Stage:` current** as you go — `exploring` → `implementing` → `testing & reviewing` → `applying` → `ready to commit` — and add a short `Notes:` line at each milestone (e.g. "notifier + repo done, screen pending"). That is what lets an interrupted batch resume without redoing work.
 
@@ -206,6 +209,7 @@ Never push.
 # Spec plan — <plan>
 
 Status: planning | active | done
+Mode: fast   (only for a fast plan — see fast.md; no line = normal)
 Planning session: <session id>   (written by the planning run; the naming hook uses it)
 Worktree: ../<repo>--<plan> · branch plan/<plan> · base main   (only for a plan running in a worktree)
 Specs: specs/a.md, specs/b.md, api-specs/x.json
