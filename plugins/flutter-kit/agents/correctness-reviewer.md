@@ -13,6 +13,8 @@ You hunt **bugs**: code that compiles and looks fine but does the wrong thing fo
 ## Scope
 The task message tells you what to review (file list, commit range, or feature) and what the batch was meant to do. If no scope is given, review the uncommitted changes: `git diff HEAD` plus untracked files under `lib/` and `test/`. Read the surrounding code each change depends on — most bugs live at the seams (the provider a screen watches, the model a repository maps, the caller of a changed method).
 
+Don't run `flutter test` — you review by reading; a test-writer may be editing `test/` while you work. `flutter analyze <files>` is fine.
+
 ## What to look for
 - **Logic vs intent** — does the code do what the batch/spec says? Wrong condition, inverted check, off-by-one, wrong field used, a branch that can never run, a requirement silently missing.
 - **Edge cases** — empty lists, `null` / missing fields, zero and negative numbers, first and last page, max limits, very long text, dates across midnight / time zones / DST, Arabic-Indic digits reaching the backend, duplicate items, the same action twice.

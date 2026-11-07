@@ -124,11 +124,11 @@ The test-writer and the reviewers don't need each other's output, so they run at
 - **In one message**, launch `flutter-kit:test-writer` on this batch's scope **and** the three reviewers from `/review-batch` Step 2 on the batch's production code. **Last batch of the plan → full mode**: correctness and smells on this batch, a cross-batch architecture pass over the whole plan (scope: from the plan's first batch commit).
 - **Don't edit code while the test-writer runs** — it is writing tests against the code as it is.
 - **When the reviewers return** (usually first): merge their findings (`/review-batch` Step 3) and ask **one** question right away, while the tests are still being written — which items to apply, and whether to commit once tests are green — e.g. "Apply 1, 3, 5, then run the tests and commit this batch's files if everything is green?" Offer: apply the recommended ones + commit (recommended) · choose items · apply but don't commit yet. The commit answer is used in step 9.
-- **When the test-writer returns:** run `flutter test` for the touched features (the full suite if `core/`, `config/`, assets or pubspec changed). A bug the tests expose is fixed as in step 4 before going on.
+- **When the test-writer returns:** run the batch's **affected tests** (Rules → "Test scope"). A bug the tests expose is fixed as in step 4 before going on.
 - **Tests check:** launch `flutter-kit:correctness-reviewer` once in **tests-check mode** on the batch's test files (`/review-batch` Step 2b) — tests that can't fail, branches with no test, fakes that hide a bug, test conventions. A few minutes; it reads the tests against the code they cover.
 
 ### 6. Apply — test first for bugs
-- Apply only the items the user chose, then `flutter analyze` and the touched features' tests again.
+- Apply only the items the user chose, then `flutter analyze` and the affected tests again — the batch's one wide run; after it, re-run only files that failed.
   - **Bugs (correctness findings) — test first, red then green.** Before touching the code, launch `flutter-kit:test-writer` **once** in regression mode with every chosen bug (its Scenario and **Test:** line), plus the tests check's findings (missing or weak tests to add or fix). Each regression test must **fail on the current code** for the reason in the scenario. Then fix the code and rerun: green. A test that can't be made to fail means the bug isn't real as described — say so and ask before fixing it anyway.
   - **Tests-check findings** only touch tests, so they go in without another question — list them in the summary. One that exposes a production bug goes through the bug flow above and is asked about first.
   - **Bugs not applied** (skipped or deferred, high or medium) go to the plan's `## Follow-ups` with the scenario and the Test line, so they aren't lost. Review fixes that break a test: fix the code, or update the test only when the agreed change intentionally changed that behaviour.
@@ -182,14 +182,14 @@ Bring the base branch in, so conflicts are solved here and never in the base fol
    - **Additive lists** (`ApiConstants`, barrels, `pubspec.yaml` dependencies, plan files' Decisions/Follow-ups): keep both sides.
    - **Real code conflicts** (same widget, notifier or model changed on both sides): show both versions and ask.
 3. Regenerate: `flutter pub get`, `dart run generate/strings/main.dart` (stop it after it prints success if it starts a watcher), `dart run build_runner build --delete-conflicting-outputs`.
-4. `flutter analyze` and `flutter test` — a merge can compile-break without any textual conflict (a renamed method used elsewhere). Fix before committing.
+4. `flutter analyze` (whole project — a merge can compile-break without any textual conflict, e.g. a renamed method used elsewhere) and the affected tests of the files the merge changed (Rules → "Test scope"). Fix before committing.
 5. Ask, then commit the merge.
 
 ### Final merge — after the last batch, or `/spec-batch <plan> merge`
 1. Check the base folder is idle: no batch `in-progress` in its plan files, and `git -C <base folder> status --porcelain` is empty. If not, say what's blocking and stop — never merge into a folder where a session is working.
 2. Sync once more (above), and set the plan's `Status: done` in the worktree.
 3. Ask, then `git -C <base folder> merge --no-ff plan/<plan>`. It should be clean after the sync; if it isn't, `git -C <base folder> merge --abort` and report.
-4. Run `flutter analyze` and `flutter test` in the base folder.
+4. Run `flutter analyze` and the merge's affected tests in the base folder. The full suite is the pre-push hook's job, or the user's call.
 5. Cleanup, after asking: return the session to the base folder (ExitWorktree with `action: keep`), then `git worktree remove ../<repo>--<plan>` and `git branch -d plan/<plan>`.
 Never push.
 
@@ -199,6 +199,7 @@ Never push.
 - **One batch per session, one running batch per folder.** Don't start the next batch here even if there's context left — unless the user explicitly asks.
 - Don't skip review or tests to save time. Don't run `/feature-dev` inside this flow.
 - Never loosen or delete a failing test to get green.
+- **Test scope — no full suite inside a batch.** Run the **affected tests**: the `test/` folders of the features the batch touched; when `core/`, `config/` or shared helpers changed, add the test folders of the features that import the changed files (grep for the import), plus `test/core` and `test/architecture` if they exist. One wide run per stage at most; after a failure, re-run **only the failing files** once fixed — never the wide run again. Nothing extra at commit time. The full `flutter test` belongs to the pre-push hook / CI, or to the user when they ask.
 - Never stage with `git add -A`, `git add .` or `git commit -a` — only this batch's files, by path.
 - **Don't end your turn in the middle of a batch.** End it only when you're asking the user something, or when the batch is handed off. While subagents run, wait for their results and keep going; if something blocks you, say what and ask.
 - **Session names come from a hook**, not from you: the plugin's UserPromptSubmit hook names the session from the plan file (`<plan> · Batch N: <title>`) when the first prompt is `/spec-batch`; a planning session becomes `<plan> · planning` (from the first word, or from the `Planning session:` line once the name is settled). If the user says the name is wrong, check the plan file's batch headings (`### N. <title> — <status>`), and tell them they can rename it (`/rename`, or Rename in the session list).

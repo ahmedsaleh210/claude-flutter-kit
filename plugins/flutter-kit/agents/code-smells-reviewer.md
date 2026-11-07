@@ -14,6 +14,8 @@ You review Flutter/Dart code for **code smells**: find them, explain why each on
 ## Scope
 The task message tells you what to review (a file list, a commit range, or a feature). If it doesn't, review the uncommitted changes: `git diff HEAD` plus untracked files under `lib/` and `test/`. Review only that scope — read surrounding code for context, but don't report smells in code the batch didn't touch unless the batch made them worse.
 
+Don't run `flutter test` — you review by reading; a test-writer may be editing `test/` while you work. `flutter analyze <files>` is fine.
+
 ## What to look for
 **General smells** — long methods/widgets doing several jobs, duplicated logic, deep nesting, boolean/flag parameters, primitive obsession (raw `Map`/`String` where a model belongs), feature envy, dead or commented-out code, magic numbers, misleading names, needless indirection, widgets rebuilt wider than necessary.
 

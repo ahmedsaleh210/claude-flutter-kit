@@ -32,6 +32,8 @@ In **one message**, three Agent calls — every batch, whatever it touches:
 
 In **full mode**, correctness and smells get the batch scope; architecture gets the feature scope plus the batch scope, with "**cross-batch review**: the batches were each reviewed already — report only what shows up across them (duplicated helpers or widgets, the same thing done two ways, boundaries or provider design that drifted between batches)".
 
+Reviewers read code; they don't run `flutter test` — a test-writer may be writing under `test/` at the same time, and the runs only slow the review. `flutter analyze` on specific files is fine.
+
 Each prompt contains: the exact file list (or commit range and how to diff it), the feature name, one line on what the batch was meant to do (from the spec or conversation), and "report only — don't edit". Don't paste file contents; they read the files themselves.
 
 ## Step 2b — Tests check (once the batch's tests exist)
@@ -47,7 +49,7 @@ One `flutter-kit:correctness-reviewer` call in **tests-check mode**: the batch's
 
 ## Step 4 — Full mode only: `/simplify`
 After the Step 3 fixes are settled (applied or skipped) and the tests are green, invoke the built-in `simplify` skill on the **feature scope's `lib/` files only** — it hasn't seen any of this code yet. Tests stay out of its scope: they are the check that its cleanups didn't change behaviour, and a simplifier that edits them can merge or weaken their assertions.
-Then run `flutter analyze` and `flutter test` for every touched feature. If a test fails, undo the `/simplify` change that broke it — don't edit the test — unless the test only pinned an internal detail (a removed helper or widget name) rather than behaviour. Report what changed.
+Then run `flutter analyze` and the affected tests: the touched features' test folders, plus the importers of any changed `core/` file — not the full suite (that's the pre-push hook's job). If a test fails, undo the `/simplify` change that broke it — don't edit the test — unless the test only pinned an internal detail (a removed helper or widget name) rather than behaviour. Report what changed.
 
 ## With /feature-dev
 When `/feature-dev` drives the work, tell it to skip its own quality-review phase and run `/review-batch` (or `/review-batch full` at the end) instead — otherwise the same code is reviewed twice.

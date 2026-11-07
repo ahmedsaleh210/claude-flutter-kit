@@ -27,7 +27,7 @@ Check what already exists under `test/` for that feature and add only what's mis
 - Seams: override the provider the screen watches, or the repository for an AsyncNotifier — never HTTP. Notifier dependencies are hand-rolled subclasses, not `Mock`s.
 
 ## Step 3 — Run until green
-- `flutter test <your files>`; then `flutter analyze` on the test files.
+- `flutter test <your files>` only — never the whole suite; after a failure re-run just the failing file. Then `flutter analyze` on the test files.
 - Fix failures **in the tests**. Never change production code to make a test pass, never loosen or delete an assertion to get green.
 - If a test exposes a real bug in the code, stop on that case: keep the test, mark it with `skip:` and a one-line reason, and report the bug with evidence.
 
