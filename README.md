@@ -93,6 +93,7 @@ Each session is named automatically when its first prompt is `/spec-batch` — n
 - The batch is the one in progress, else the first pending one whose design isn't deferred — the same one `/spec-batch` will work on.
 - With several active plans, `/spec-batch` alone leaves the name untouched (it can't know which plan you'll pick); use `/spec-batch <plan>`.
 - A planning session without a name in the command is renamed to `<plan> · planning` on your next message after the name is confirmed (the plan file records `Planning session: <id>`).
+- A plan running in a worktree is read from that worktree, so a session opened from the base folder still gets the right batch.
 - A session you already named is never renamed.
 - Labels follow the plan's language: Arabic (`الدفعة`, `تخطيط`) when the plan file contains Arabic, English otherwise. Force one with the `FLUTTER_KIT_LANG` environment variable (`ar` or `en`), e.g. in `~/.claude/settings.json` → `"env": { "FLUTTER_KIT_LANG": "ar" }`.
 - The plugin must be installed (not just loaded for one session) for its hooks to name sessions.

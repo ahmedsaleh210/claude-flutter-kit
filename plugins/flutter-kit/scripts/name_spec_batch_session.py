@@ -16,12 +16,15 @@ plan's), several plans are active and none was named,
 or no batch is left. Labels are Arabic when FLUTTER_KIT_LANG=ar, or when unset and the
 plan file contains Arabic; English otherwise. Never fails the prompt.
 Context blocks a client adds around the prompt (VS Code's <ide_opened_file>, …) are
-ignored, so an open file doesn't hide the command.
+ignored, so an open file doesn't hide the command. A plan running in a worktree (branch
+plan/<plan>) is read from that worktree: the base folder's copy stops at the point the
+worktree was created.
 """
 
 import json
 import os
 import re
+import subprocess
 import sys
 
 # Context blocks a client wraps around the prompt, e.g. VS Code's
@@ -36,6 +39,7 @@ PLAN_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 DESIGN = re.compile(r"^Design:\s*(.*)$", re.M | re.I)
 ARABIC = re.compile(r"[؀-ۿ]")
 MAX_LEN = 80
+PLAN_BRANCH = "branch refs/heads/plan/"
 
 LABELS = {
     "en": {"batch": "Batch", "planning": "planning", "merge": "merge"},
@@ -58,15 +62,38 @@ def read(path: str) -> str:
         return ""
 
 
+def plan_worktrees(cwd: str) -> dict:
+    """Maps plan name -> worktree path, for worktrees on a plan/<plan> branch."""
+    try:
+        listing = subprocess.run(
+            ["git", "-C", cwd, "worktree", "list", "--porcelain"],
+            capture_output=True, text=True, timeout=3,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    plans, path = {}, None
+    for line in listing.splitlines():
+        if line.startswith("worktree "):
+            path = line[len("worktree "):]
+        elif line.startswith(PLAN_BRANCH):
+            plans[line[len(PLAN_BRANCH):]] = path
+    return plans
+
+
 def plan_files(cwd: str) -> dict:
     folder = os.path.join(cwd, "specs", "_progress")
-    if not os.path.isdir(folder):
-        return {}
-    return {
-        name[:-3]: os.path.join(folder, name)
-        for name in sorted(os.listdir(folder))
-        if name.endswith(".md")
-    }
+    plans = {}
+    if os.path.isdir(folder):
+        plans = {
+            name[:-3]: os.path.join(folder, name)
+            for name in sorted(os.listdir(folder))
+            if name.endswith(".md")
+        }
+    for name, worktree in plan_worktrees(cwd).items():
+        path = os.path.join(worktree, "specs", "_progress", f"{name}.md")
+        if os.path.isfile(path):
+            plans[name] = path
+    return plans
 
 
 def next_batch(text: str):

@@ -13,7 +13,7 @@ Pick the mode from `$ARGUMENTS`:
 - **Spec paths and/or Figma links → Plan mode** — a new plan. A first word that is a new kebab-case name (not an existing plan, not a path) is the new plan's name: `/spec-batch wallet specs/wallet-flutter.md`.
 - **`fast` as the first word → Plan mode in fast mode** (`/spec-batch fast [name] specs/…`): read `${CLAUDE_SKILL_DIR}/fast.md` before planning. Fast mode is the user's choice only — never suggest it or switch a plan to it.
 - **First word names an existing plan** (no `/`, no `.md`, not a URL) **→ Continue mode** for that plan. Words after it are just a label for the session name and are ignored — except `merge` (`/spec-batch <plan> merge`), which goes straight to "Plan worktrees → Final merge".
-- **No arguments → Continue mode.** Look at the plan files whose `Status:` is `active`:
+- **No arguments → Continue mode.** Look at the plan files whose `Status:` is `active` — for a plan with a worktree on `plan/<plan>` (`git worktree list --porcelain`), read its status and next batch from the worktree's copy; the copy here stops at the point the worktree was created:
   - none → say so (list finished plans, and any `Status: planning` file — an unfinished planning run) and ask what to plan from;
   - one → continue it;
   - several → ask which, showing each plan's name and its next batch.
